@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Cbon.fs" />
+    <Compile Include="Reader.fs" />
+    <Compile Include="Parser.fs" />
+    <Compile Include="Library.fs" />
+  </ItemGroup>
+
+</Project>

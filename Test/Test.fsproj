@@ -14,9 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="TestWord.fs" />
     <Compile Include="TestSpace.fs" />
     <Compile Include="TestStr.fs" />
-    <Compile Include="TestNum.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

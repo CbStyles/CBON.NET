@@ -1,4 +1,5 @@
 ﻿module CbStyle.Cbon.Parser
+open System.Text.RegularExpressions
 open CbStyle.Cbon.Utils
 open CbStyle.Cbon
 open System.Text
@@ -12,21 +13,40 @@ let inline is_hex c = c <? ('0', '9') || c <? ('a', 'f') || c <? ('A', 'F')
 let inline not_hex c = not <| is_hex c
 let inline (|Hex|NotNex|) c = if is_hex c then Hex else NotNex
 
+let inline not_word c = c = '[' || c = '{' || c = ']' || c = '}' || c = ''' || c = '"' || c = ':' || c = '=' || c = ',' || System.Char.IsWhiteSpace c
+let inline is_word c = not <| not_word c
+
 let inline find_not (code: Code Span) index f = code.[index..] |> Seq.tryFindIndex f =>= (fun v -> v + index) ?= code.Length
 
-let rec arr_loop (code: Code Span) = 
-    failwith "todo"
-and arr_loop_body (code: Code Span) (item: CbVal MutList) = 
+let num_reg = Regex (@"(\d+[\d_]*(\.(\d+[\d_]*)?)?([eE][-+]?\d+[\d_]*)?)|(\.\d+[\d_]*([eE][-+]?\d+[\d_]*)?)", RegexOptions.Compiled)
+let hex_reg = Regex (@"0x[\da-fA-F]+[\da-fA-F_]*", RegexOptions.Compiled)
+
+let rec parser (code: Code Span) = arr_loop_body code (new MutList<CbVal>()) (fun code -> (code.IsEmpty, code)) |> sr
+
+//====================================================================================================
+
+and arr_loop (code: Code Span) = 
+    match code.Get 0 with
+    | ValueSome '[' -> ValueSome <| arr_loop_body code.[1..] (new MutList<CbVal>()) (fun code -> 
+        if code.IsEmpty then (true, code) else
+        match code.Get 0 with
+        | ValueSome ']' -> (true, code.[1..])
+        | _ -> (false, code) )
+    | _ -> ValueNone
+and arr_loop_body (code: Code Span) (item: CbVal MutList) (endf: Code Span -> struct(bool * Code Span)) = 
     let r = str code =|=>=? CbVal.fStr
-        =>> (fun () -> space code =|=>= none)
+        =>> (fun _ -> space code =|=>= none)
+        =>> (fun _ -> arr_loop code =|=>=? CbVal.fArr)
+        =>> (fun _ -> word code =|=>= ValueSome)  
     match r with
-    | ValueNone -> failwith "never"
+    | ValueNone -> raise <| ParserError ("Unexpected symbol \t at " + string(code.RawIndex 0))
     | ValueSome (code: Code Span, v) -> 
         match v with
         | ValueSome v -> item.Add(v)
         | _ -> ()
-        if code.IsEmpty then struct(code, item)
-        else arr_loop_body code item
+        match endf code with
+        | (true, code) -> (code, item)
+        | (false, code) -> arr_loop_body code item endf
 
 //====================================================================================================
 
@@ -68,7 +88,7 @@ and str_escape code index =
     | ValueSome 'v' -> (index + 1, '\v')
     | ValueSome 'u' -> str_escape_unicode code (index + 1)
     | ValueSome c -> (index + 1, c)
-    | ValueNone -> raise <| ParserError ("string not closed " + string(code.RawIndex index))
+    | ValueNone -> raise <| ParserError ("string not closed \t at " + string(code.RawIndex index))
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //     ...\u...
 // index is ^ 
@@ -114,8 +134,22 @@ and space code =
 
 //====================================================================================================
 
+and word code =
+    match code.Get 0 with
+    | ValueNone -> ValueNone 
+    | ValueSome c when not_word c -> ValueNone
+    | _ -> 
+        let e = find_not code 1 (fun c -> not_word c)
+        let s = comStr code.[..e]
+        let v = 
+            match s with
+            | "true" -> CbVal.Bool true
+            | "false" -> CbVal.Bool false
+            | "null" -> CbVal.Null
+            | _ when hex_reg.IsMatch s -> CbVal.Hex (Hex <| s.Substring(2))
+            | _ when num_reg.IsMatch s -> CbVal.Num (Num s)
+            | _ -> CbVal.Str s
+        ValueSome (code.[e..], v)
 
 
 
-
-//let parser code = loop  code

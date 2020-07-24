@@ -63,9 +63,14 @@ let inline (=>=|=?) a b =
     | _ -> ValueNone
 
 /// Map Right
-let inline r f = fun ((l, r)) -> (l, f r)
+let inline mr f = fun (struct(l, r)) -> (l, f r)
 
 /// Map Left
-let inline l f = fun ((l, r)) -> (f l, r)
+let inline ml f = fun (struct(l, r)) -> (f l, r)
 
 let inline none _ = ValueNone
+
+/// Select Left
+let inline sl struct(l, _) = l
+/// Select Right
+let inline sr struct(_, r) = r 

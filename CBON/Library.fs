@@ -1,2 +1,2 @@
-﻿namespace VolumeLight.Cbon
+﻿namespace CbStyle.Cbon
 

@@ -1,4 +1,4 @@
-﻿namespace VolumeLight.Cbon
+﻿namespace CbStyle.Cbon
 open System.Collections.Generic
 open System.Globalization
 
@@ -9,6 +9,13 @@ type CbVal =
     | Str of string
     | Arr of CbVal List
     | Obj of Dictionary<string, CbVal>
+
+    static member inline fNull () = CbVal.Null
+    static member inline fBool v = CbVal.Bool v
+    static member inline fNum v = CbVal.Num v
+    static member inline fStr v = CbVal.Str v
+    static member inline fArr v = CbVal.Arr v
+    static member inline fObj v = CbVal.Obj v
 
 and [<Struct>] Num =
     val raw: string

@@ -1,4 +1,4 @@
-﻿namespace VolumeLight.Cbon
+﻿namespace CbStyle.Cbon
 open System.Collections.Generic
 open System.Collections
 
@@ -32,6 +32,7 @@ type Span<'T>(arr: 'T [] ref, from: int, toend: int) =
     member _.Length = toend - from
     member inline self.IsEmpty = self.Length = 0
     member inline self.IsNotEmpty = self.Length > 0
+    member _.RawIndex idx = from + idx
     member self.GetSlice(startIdx, endIdx) = 
         let s, e = (defaultArg startIdx 0, defaultArg endIdx self.Length)
         Span(arr, s, e)
@@ -52,8 +53,7 @@ type Span<'T>(arr: 'T [] ref, from: int, toend: int) =
         | :? ('T []) as a when self.Length = a.Length -> (Seq.zip self a |> Seq.tryFindIndex (fun ((a, b)) -> not <| (a :> obj).Equals b)).IsNone
         | _ -> false
     override self.GetHashCode() = (self.Raw.Value :> obj).GetHashCode() + self.From.GetHashCode() + self.To.GetHashCode()
-    override self.ToString () = System.String.Format("Span[{0}]", System.String.Join(", ", self |> Seq.map (fun v -> v.ToString()))   ) 
-
+    override self.ToString () = System.String.Format("Span[{0}]", System.String.Join(", ", self |> Seq.map (fun v -> v.ToString())) ) 
 
 and SpanIter<'T>(span: Span<'T>) =
     let mutable i = 0
@@ -69,7 +69,7 @@ and SpanIter<'T>(span: Span<'T>) =
                 true
 
 module Reader = 
-    let reader<'i when 'i :> IEnumerable<char>> (code: 'i) : Code Span = 
+    let reader (code: #seq<char>) : Code Span = 
         let mutable r = false
         let r = Seq.toArray <| seq {
             for c in code do

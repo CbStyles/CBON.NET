@@ -41,13 +41,25 @@ let inline (=>==) a b =
 /// Map Right
 let inline (=|=>=) a b =
     match a with
-    | ValueSome struct (l, r) -> ValueSome (l, b r)
+    | ValueSome struct (l, r) -> ValueSome struct(l, b r)
     | _ -> ValueNone
 
 /// Map Left
 let inline (=>=|=) a b =
     match a with
-    | ValueSome struct (l, r) -> ValueSome (b l, r)
+    | ValueSome struct (l, r) -> ValueSome struct(b l, r)
+    | _ -> ValueNone
+
+/// Map Right Opt
+let inline (=|=>=?) a b =
+    match a with
+    | ValueSome struct (l, r) -> ValueSome struct (l, ValueSome (b r))
+    | _ -> ValueNone
+
+/// Map Left Opt
+let inline (=>=|=?) a b =
+    match a with
+    | ValueSome struct (l, r) -> ValueSome struct (ValueSome (b l), r)
     | _ -> ValueNone
 
 /// Map Right
@@ -55,3 +67,5 @@ let inline r f = fun ((l, r)) -> (l, f r)
 
 /// Map Left
 let inline l f = fun ((l, r)) -> (f l, r)
+
+let inline none _ = ValueNone

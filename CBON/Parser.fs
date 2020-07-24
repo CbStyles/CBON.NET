@@ -17,67 +17,16 @@ let inline find_not (code: Code Span) index f = code.[index..] |> Seq.tryFindInd
 let rec arr_loop (code: Code Span) = 
     failwith "todo"
 and arr_loop_body (code: Code Span) (item: CbVal MutList) = 
-    let r = num code =|=>= CbVal.fNum
-        =>> (fun () -> str code =|=>= CbVal.fStr) 
+    let r = str code =|=>=? CbVal.fStr
+        =>> (fun () -> space code =|=>= none)
     match r with
     | ValueNone -> failwith "never"
     | ValueSome (code: Code Span, v) -> 
-        item.Add(v)
-        if code.IsEmpty then (code, item)
+        match v with
+        | ValueSome v -> item.Add(v)
+        | _ -> ()
+        if code.IsEmpty then struct(code, item)
         else arr_loop_body code item
-
-and num code = 
-    match code.Get 0 with 
-    | ValueSome '0' -> check_num_zero code
-    | ValueSome '.' -> num_body_may_float code 1
-    | ValueSome c when c <? ('1', '9') -> num_body code 1
-    | _ -> ValueNone
-and check_num_zero code =
-    match code.Get 1 with
-    | ValueSome 'x' -> num_body_hex code 2
-    | ValueSome '.' -> num_body_float code 2
-    | ValueSome c when c <? ('0', '9') || c = '_' -> num_body code 2
-    | _ -> ValueSome (code.[1..], new Num(comStr code.[..1]))
-and num_body code index =
-    let e = code.[index..] |> Seq.tryFindIndex (fun c -> ! (c <? ('0', '9') || c = '_') ) =>= (fun v -> v + index) ?= code.Length
-    match code.Get e with
-    | ValueSome '.' -> num_body_float code (e + 1)
-    | ValueSome c when c = 'e' || c = 'E' -> num_body_radix code (e + 1)
-    | _ -> ValueSome (code.[e..], new Num(comStr code.[..e]))
-and num_body_may_float code index =
-    let e = code.[index..] |> Seq.tryFindIndex (fun c -> c <> '_' ) =>= (fun v -> v + index) ?= code.Length
-    match code.Get e with
-    | ValueSome c when c <? ('0', '9') -> num_body_float code (e + 1)
-    | _ -> ValueNone
-and num_body_float code index =
-    let e = code.[index..] |> Seq.tryFindIndex (fun c -> ! (c <? ('0', '9') || c = '_') ) =>= (fun v -> v + index) ?= code.Length
-    match code.Get e with
-    | ValueSome c when c = 'e' || c = 'E' -> num_body_radix code (e + 1)
-    | _ -> ValueSome (code.[e..], new Num(comStr code.[..e]))
-and num_body_radix code index = 
-    if code.[(index - 1)..].IsEmpty then ValueNone
-    else 
-        let e = 
-            match code.Get index with 
-            | ValueSome '+' | ValueSome '-' -> index + 1
-            | _ -> index
-        let e = code.[e..] |> Seq.tryFindIndex (fun c -> c <> '_' ) =>= (fun v -> v + e) ?= code.Length
-        let e = 
-            match code.Get e with 
-            | ValueSome c when c <? ('0', '9') -> 
-                let e = e + 1
-                code.[e..] |> Seq.tryFindIndex (fun c -> ! (c <? ('0', '9') || c = '_') ) =>= (fun v -> v + e) ?= code.Length
-            | _ -> index - 1
-        ValueSome (code.[e..], new Num(comStr code.[..e]))
-and num_body_hex code index =
-    let e = code.[index..] |> Seq.tryFindIndex (fun c -> c <> '_' ) =>= (fun v -> v + index) ?= code.Length
-    let e = 
-        match code.Get e with
-        | ValueSome c when c <? ('0', '9') || c <? ('a', 'f') || c <? ('A', 'F') ->
-            let e = e + 1
-            code.[e..] |> Seq.tryFindIndex (fun c -> ! (c <? ('0', '9') || c <? ('a', 'f') || c <? ('A', 'F') || c = '_') ) =>= (fun v -> v + e) ?= code.Length
-        | _ -> index - 1
-    ValueSome (code.[e..], new Num(comStr code.[..e]))
 
 //====================================================================================================
 
@@ -141,7 +90,7 @@ and str_escape_unicode_block code index =
             let c = char c
             (e + 1, c)
         else raise <| ParserError ("Illegal Unicode escape \t at " + string(code.RawIndex index))
-    | _ -> raise <| ParserError ("Unicode escape not close or illegal characters \t at "  + string(code.RawIndex index))
+    | _ -> raise <| ParserError ("Unicode escape not close or illegal characters \t at " + string(code.RawIndex index))
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //    ...\uX...
 // index is ^ 
@@ -154,9 +103,16 @@ and str_escape_unicode_char code index =
         (e, c)
     else raise <| ParserError ("Illegal Unicode escape \t at " + string(code.RawIndex index))
 
+//====================================================================================================
 
+and space code =
+    match code.Get 0 with
+    | ValueSome c when System.Char.IsWhiteSpace c -> 
+        let e = find_not code 1 (fun c -> System.Char.IsWhiteSpace c |> not)
+        ValueSome (code.[e..], ())
+    | _ -> ValueNone
 
-
+//====================================================================================================
 
 
 

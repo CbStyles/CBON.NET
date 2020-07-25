@@ -21,6 +21,8 @@ let inline find_not (code: Code Span) index f = code.[index..] |> Seq.tryFindInd
 let num_reg = Regex (@"(\d+[\d_]*(\.(\d+[\d_]*)?)?([eE][-+]?\d+[\d_]*)?)|(\.\d+[\d_]*([eE][-+]?\d+[\d_]*)?)", RegexOptions.Compiled)
 let hex_reg = Regex (@"0x[\da-fA-F]+[\da-fA-F_]*", RegexOptions.Compiled)
 
+//====================================================================================================
+
 let rec parser (code: Code Span) = arr_loop_body code (new MutList<CbVal>()) (fun code -> (code.IsEmpty, code)) |> sr
 
 //====================================================================================================
@@ -36,6 +38,7 @@ and arr_loop (code: Code Span) =
 and arr_loop_body (code: Code Span) (item: CbVal MutList) (endf: Code Span -> struct(bool * Code Span)) = 
     let r = str code =|=>=? CbVal.fStr
         =>> (fun _ -> space code =|=>= none)
+        =>> (fun _ -> comma code =|=>= none)
         =>> (fun _ -> arr_loop code =|=>=? CbVal.fArr)
         =>> (fun _ -> word code =|=>= ValueSome)  
     match r with
@@ -151,5 +154,10 @@ and word code =
             | _ -> CbVal.Str s
         ValueSome (code.[e..], v)
 
+//====================================================================================================
 
+and comma code = 
+    match code.Get 0 with
+    | ValueSome ',' -> ValueSome (code.[1..], ())
+    | _ -> ValueNone
 

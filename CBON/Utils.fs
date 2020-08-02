@@ -1,6 +1,7 @@
 ﻿module internal CbStyle.Cbon.Utils
 
 type MutList<'a> = System.Collections.Generic.List<'a>
+type MutMap<'k, 'v> = System.Collections.Generic.Dictionary<'k, 'v>
 
 /// char is in range
 let inline (<?) c (f, t) = c >= f && c <= t
@@ -23,11 +24,24 @@ let inline (?=) a b =
     | None -> b
     | Some v -> v
 
+/// Default
+let inline (?==) a b =
+    match a with
+    | ValueNone -> b
+    | ValueSome v -> v
+
+
 /// OrElse
 let inline (=>>) a b = 
     match a with
     | ValueNone -> b ()
     | _ -> a
+
+/// Unwrap
+let inline (?==!) a b =
+    match a with
+    | ValueNone -> raise b
+    | ValueSome v -> v
 
 /// Not
 let inline (!) a = not a

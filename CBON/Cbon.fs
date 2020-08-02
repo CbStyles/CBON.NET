@@ -2,22 +2,22 @@
 open System.Collections.Generic
 open System.Globalization
 
-type CbVal =
+type CbAst =
     | Null
     | Bool of bool
     | Num of Num
     | Hex of Hex
     | Str of string
-    | Arr of CbVal List
-    | Obj of Dictionary<string, CbVal>
+    | Arr of CbAst List
+    | Obj of Dictionary<string, CbAst>
 
-    static member inline fNull () = CbVal.Null
-    static member inline fBool v = CbVal.Bool v
-    static member inline fNum v = CbVal.Num v
-    static member inline fHex v = CbVal.Hex v
-    static member inline fStr v = CbVal.Str v
-    static member inline fArr v = CbVal.Arr v
-    static member inline fObj v = CbVal.Obj v
+    static member inline fNull () = CbAst.Null
+    static member inline fBool v = CbAst.Bool v
+    static member inline fNum v = CbAst.Num v
+    static member inline fHex v = CbAst.Hex v
+    static member inline fStr v = CbAst.Str v
+    static member inline fArr v = CbAst.Arr v
+    static member inline fObj v = CbAst.Obj v
 
 and [<Struct>] Num =
     val raw: string

@@ -13,7 +13,7 @@ let inline is_hex c = c <? ('0', '9') || c <? ('a', 'f') || c <? ('A', 'F')
 let inline not_hex c = not <| is_hex c
 let inline (|Hex|NotNex|) c = if is_hex c then Hex else NotNex
 
-let inline not_word c = c = '[' || c = '{' || c = ']' || c = '}' || c = ''' || c = '"' || c = ':' || c = '=' || c = ',' || System.Char.IsWhiteSpace c
+let inline not_word c = c = '[' || c = '{' || c = ']' || c = '}' || c = ''' || c = '"' || c = ':' || c = '=' || c = ',' || c = ';' || System.Char.IsWhiteSpace c
 let inline is_word c = not <| not_word c
 
 let inline find_not (code: Code Span) index f = code.[index..] |> Seq.tryFindIndex f =>= (fun v -> v + index) ?= code.Length
@@ -23,24 +23,25 @@ let hex_reg = Regex (@"0x[\da-fA-F]+[\da-fA-F_]*", RegexOptions.Compiled)
 
 //====================================================================================================
 
-let rec parser (code: Code Span) = arr_loop_body code (new MutList<CbVal>()) (fun code -> (code.IsEmpty, code)) |> sr
+let rec parser (code: Code Span) = arr_loop_body code (new MutList<CbAst>()) (fun code -> (code.IsEmpty, code)) |> sr
 
 //====================================================================================================
 
 and arr_loop (code: Code Span) = 
     match code.Get 0 with
-    | ValueSome '[' -> ValueSome <| arr_loop_body code.[1..] (new MutList<CbVal>()) (fun code -> 
+    | ValueSome '[' -> ValueSome <| arr_loop_body code.[1..] (new MutList<CbAst>()) (fun code -> 
         if code.IsEmpty then (true, code) else
         match code.Get 0 with
         | ValueSome ']' -> (true, code.[1..])
         | _ -> (false, code) )
     | _ -> ValueNone
-and arr_loop_body (code: Code Span) (item: CbVal MutList) (endf: Code Span -> struct(bool * Code Span)) = 
-    let r = str code =|=>=? CbVal.fStr
+and arr_loop_body (code: Code Span) (item: CbAst MutList) (endf: Code Span -> struct(bool * Code Span)) = 
+    let r = str code =|=>=? CbAst.fStr
         =>> (fun _ -> space code =|=>= none)
         =>> (fun _ -> comma code =|=>= none)
-        =>> (fun _ -> arr_loop code =|=>=? CbVal.fArr)
-        =>> (fun _ -> word code =|=>= ValueSome)  
+        =>> (fun _ -> arr_loop code =|=>=? CbAst.fArr)
+        =>> (fun _ -> obj_loop code =|=>=? CbAst.fObj)
+        =>> (fun _ -> word code =|=>= ValueSome)
     match r with
     | ValueNone -> raise <| ParserError ("Unexpected symbol \t at " + string(code.RawIndex 0))
     | ValueSome (code: Code Span, v) -> 
@@ -50,6 +51,42 @@ and arr_loop_body (code: Code Span) (item: CbVal MutList) (endf: Code Span -> st
         match endf code with
         | (true, code) -> (code, item)
         | (false, code) -> arr_loop_body code item endf
+
+//====================================================================================================
+
+and obj_loop (code: Code Span) =
+    match code.Get 0 with
+    | ValueSome '{' -> ValueSome <| obj_loop_body code.[1..] (new MutMap<string, CbAst>()) (fun code ->
+         if code.IsEmpty then (true, code) else
+         match code.Get 0 with
+         | ValueSome '}' -> (true, code.[1..])
+         | _ -> (false, code) )
+    | _ -> ValueNone
+and obj_loop_body (code: Code Span) (item: MutMap<string, CbAst>) (endf: Code Span -> struct(bool * Code Span)) =
+    match comma code =>> (fun _ -> space code) with
+    | ValueSome (code, _) -> obj_loop_body code item endf
+    | ValueNone ->
+    match endf code with
+    | (true, code) -> (code, item)
+    | (false, code) ->
+    let code = space code =>== sl ?== code
+    let struct(code1, k) = str code =>> (fun _ -> key code) ?==! ParserError ("Expected key but not found \t at " + string(code.RawIndex 0))
+    let code2 = space code1 =>== sl ?== code1
+    let code3 = split code2 =>== sl ?== code2
+    let code4 = space code3 =>== sl ?== code3
+    let r = str code4 =|=>=? CbAst.fStr
+        =>> (fun _ -> arr_loop code4 =|=>=? CbAst.fArr)
+        =>> (fun _ -> obj_loop code4 =|=>=? CbAst.fObj)
+        =>> (fun _ -> word code4 =|=>= ValueSome)
+    match r with
+    | ValueNone -> raise <| ParserError ("Unexpected symbol \t at " + string(code4.RawIndex 0))
+    | ValueSome (code: Code Span, v) -> 
+        match v with
+        | ValueSome v -> item.Add(k, v)
+        | _ -> ()
+        match endf code with
+        | (true, code) -> (code, item)
+        | (false, code) -> obj_loop_body code item endf
 
 //====================================================================================================
 
@@ -146,18 +183,35 @@ and word code =
         let s = comStr code.[..e]
         let v = 
             match s with
-            | "true" -> CbVal.Bool true
-            | "false" -> CbVal.Bool false
-            | "null" -> CbVal.Null
-            | _ when hex_reg.IsMatch s -> CbVal.Hex (Hex <| s.Substring(2))
-            | _ when num_reg.IsMatch s -> CbVal.Num (Num s)
-            | _ -> CbVal.Str s
+            | "true" -> CbAst.Bool true
+            | "false" -> CbAst.Bool false
+            | "null" -> CbAst.Null
+            | _ when hex_reg.IsMatch s -> CbAst.Hex (Hex <| s.Substring(2))
+            | _ when num_reg.IsMatch s -> CbAst.Num (Num s)
+            | _ -> CbAst.Str s
         ValueSome (code.[e..], v)
 
 //====================================================================================================
 
 and comma code = 
     match code.Get 0 with
-    | ValueSome ',' -> ValueSome (code.[1..], ())
+    | ValueSome ',' | ValueSome ';' -> ValueSome (code.[1..], ())
     | _ -> ValueNone
 
+//====================================================================================================
+
+and key code =
+    match code.Get 0 with
+    | ValueNone -> ValueNone 
+    | ValueSome c when not_word c -> ValueNone
+    | _ -> 
+        let e = find_not code 1 (fun c -> not_word c)
+        let s = comStr code.[..e]
+        ValueSome (code.[e..], s)
+
+//====================================================================================================
+
+and split code = 
+    match code.Get 0 with
+    | ValueSome ':' | ValueSome '=' -> ValueSome (code.[1..], ())
+    | _ -> ValueNone

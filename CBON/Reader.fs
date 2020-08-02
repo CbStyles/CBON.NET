@@ -35,12 +35,12 @@ type Span<'T>(arr: 'T [] ref, from: int, toend: int) =
     member _.RawIndex idx = from + idx
     member self.GetSlice(startIdx, endIdx) = 
         let s, e = (defaultArg startIdx 0, defaultArg endIdx self.Length)
-        Span(arr, s, e)
+        Span(arr, from + s, from + e)
     member _.Item
         with get idx = arr.Value.[from + idx]
         and set idx v = arr.Value.[from + idx] <- v
     member self.Get idx = 
-        if from + idx >=  self.Length then ValueNone
+        if from + idx >= toend then ValueNone
         else ValueSome self.[idx]
     interface seq<'T> with
         member self.GetEnumerator(): IEnumerator = upcast new SpanIter<'T>(self)

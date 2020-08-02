@@ -2,6 +2,13 @@
 open System.Collections.Generic
 open System.Globalization
 
+type CbVal = 
+    | Bool of bool
+    | Num of decimal
+    | Str of string
+    | Arr of CbVal
+    | Obj of Dictionary<string, CbVal>
+
 type CbAst =
     | Null
     | Bool of bool
@@ -18,6 +25,29 @@ type CbAst =
     static member inline fStr v = CbAst.Str v
     static member inline fArr v = CbAst.Arr v
     static member inline fObj v = CbAst.Obj v
+
+    static member ArrToString (arr: #IList<'v>) = 
+        "[" + System.String.Join(",", arr |> Seq.map (fun v -> " " + v.ToString())) + " ]"
+    static member ObjToString (obj: #IDictionary<'k, 'v>) = 
+        "{" + System.String.Join(",", obj |> Seq.map (fun kv -> " \"" + kv.Key.ToString().Replace("\"", "\\\"") + "\": " + kv.Value.ToString())) + " }"
+
+    static member ToString (arr: #IList<'v>) = CbAst.ArrToString arr
+    static member ToString (obj: #IDictionary<'k, 'v>) = CbAst.ObjToString obj
+    static member ToString (ast: CbAst) = ast.ToString()
+    static member ToString (b: bool) = if b then "true" else "false"
+    static member ToString (s: string) = "\"" + s.Replace("\"", "\\\"") + "\""
+    static member ToString (n: Num) = n.raw
+    static member ToString (n: Hex) = n.raw
+
+    override self.ToString() = 
+        match self with
+        | Null -> "null"
+        | Bool b -> if b then "true" else "false"
+        | Num n -> n.raw
+        | Hex n -> n.raw
+        | Str s -> "\"" + s.Replace("\"", "\\\"") + "\""
+        | Arr a -> CbAst.ArrToString a
+        | Obj o -> CbAst.ObjToString o
 
 and [<Struct>] Num =
     val raw: string

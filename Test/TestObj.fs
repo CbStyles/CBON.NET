@@ -6,10 +6,6 @@ open CbStyle.Cbon.Reader
 open CbStyle.Cbon
 open System.Collections.Generic
 
-let ToDebugStr (dic: #IDictionary<'k, 'v>) = 
-    "{" + System.String.Join(",", dic |> Seq.map (fun kv -> " " + kv.Key.ToString() + " = " + kv.Value.ToString())) + " }"
-
-
 [<SetUp>]
 let Setup () =
     ()
@@ -20,7 +16,7 @@ let TestObj1 () =
     let r = obj_loop code
     Assert.True(r.IsSome)
     let struct(s, r) = r.Value
-    printf "(%s, %s)" (s.ToString()) (ToDebugStr r)
+    printf "(%s, %s)" (s.ToString()) (CbAst.ObjToString r)
     Assert.AreEqual(Span<Code>(ref [||]), s)
     let e = new Dictionary<string, CbAst>()
     CollectionAssert.AreEqual(e, r)
@@ -31,7 +27,7 @@ let TestObj2 () =
     let r = obj_loop code
     Assert.True(r.IsSome)
     let struct(s, r) = r.Value
-    printf "(%s, %s)" (s.ToString()) (ToDebugStr r)
+    printf "(%s, %s)" (s.ToString()) (CbAst.ObjToString r)
     Assert.AreEqual(Span<Code>(ref [||]), s)
 
     let e = new Dictionary<string, CbAst>()
@@ -44,7 +40,7 @@ let TestObj3 () =
     let r = obj_loop code
     Assert.True(r.IsSome)
     let struct(s, r) = r.Value
-    printf "(%s, %s)" (s.ToString()) (ToDebugStr r)
+    printf "(%s, %s)" (s.ToString()) (CbAst.ObjToString r)
     Assert.AreEqual(Span<Code>(ref [||]), s)
 
     let e = new Dictionary<string, CbAst>()
@@ -58,7 +54,7 @@ let TestObj4 () =
     let r = obj_loop code
     Assert.True(r.IsSome)
     let struct(s, r) = r.Value
-    printf "(%s, %s)" (s.ToString()) (ToDebugStr r)
+    printf "(%s, %s)" (s.ToString()) (CbAst.ObjToString r)
     Assert.AreEqual(Span<Code>(ref [||]), s)
 
     let e = new Dictionary<string, CbAst>()
@@ -72,7 +68,7 @@ let TestObj5 () =
     let r = obj_loop code
     Assert.True(r.IsSome)
     let struct(s, r) = r.Value
-    printf "(%s, %s)" (s.ToString()) (ToDebugStr r)
+    printf "(%s, %s)" (s.ToString()) (CbAst.ObjToString r)
     Assert.AreEqual(Span<Code>(ref [||]), s)
 
     let e = new Dictionary<string, CbAst>()
@@ -101,7 +97,7 @@ let TestObj8 () =
     let r = obj_loop code
     Assert.True(r.IsSome)
     let struct(s, r) = r.Value
-    printf "(%s, %s)" (s.ToString()) (ToDebugStr r)
+    printf "(%s, %s)" (s.ToString()) (CbAst.ObjToString r)
     Assert.AreEqual(Span<Code>(ref [||]), s)
     let e = new Dictionary<string, CbAst>()
     CollectionAssert.AreEqual(e, r)

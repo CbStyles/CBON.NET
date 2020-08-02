@@ -36,6 +36,9 @@ and arr_loop (code: Code Span) =
         | _ -> (false, code) )
     | _ -> ValueNone
 and arr_loop_body (code: Code Span) (item: CbAst MutList) (endf: Code Span -> struct(bool * Code Span)) = 
+    match endf code with
+    | (true, code) -> (code, item)
+    | (false, code) -> 
     let r = str code =|=>=? CbAst.fStr
         =>> (fun _ -> space code =|=>= none)
         =>> (fun _ -> comma code =|=>= none)
@@ -45,12 +48,10 @@ and arr_loop_body (code: Code Span) (item: CbAst MutList) (endf: Code Span -> st
     match r with
     | ValueNone -> raise <| ParserError ("Unexpected symbol \t at " + string(code.RawIndex 0))
     | ValueSome (code: Code Span, v) -> 
-        match v with
-        | ValueSome v -> item.Add(v)
-        | _ -> ()
-        match endf code with
-        | (true, code) -> (code, item)
-        | (false, code) -> arr_loop_body code item endf
+    match v with
+    | ValueSome v -> item.Add(v)
+    | _ -> ()
+    arr_loop_body code item endf
 
 //====================================================================================================
 
@@ -81,12 +82,10 @@ and obj_loop_body (code: Code Span) (item: MutMap<string, CbAst>) (endf: Code Sp
     match r with
     | ValueNone -> raise <| ParserError ("Unexpected symbol \t at " + string(code4.RawIndex 0))
     | ValueSome (code: Code Span, v) -> 
-        match v with
-        | ValueSome v -> item.Add(k, v)
-        | _ -> ()
-        match endf code with
-        | (true, code) -> (code, item)
-        | (false, code) -> obj_loop_body code item endf
+    match v with
+    | ValueSome v -> item.Add(k, v)
+    | _ -> ()
+    obj_loop_body code item endf
 
 //====================================================================================================
 

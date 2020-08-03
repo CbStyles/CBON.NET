@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="TestDeserialize.fs" />
     <Compile Include="Test.fs" />
     <Compile Include="TestArr.fs" />
     <Compile Include="TestObj.fs" />

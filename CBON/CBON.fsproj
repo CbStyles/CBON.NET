@@ -6,16 +6,19 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <Copyright>CbStyle</Copyright>
+    <PackageProjectUrl>https://github.com/CbStyles/CBON.NET</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/CbStyles/CBON.NET.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="Utils.fs" />
     <Compile Include="Cbon.fs" />
-    <Compile Include="Cbon.Parser.fs" />
-    <Compile Include="Reader.fs" />
-    <Compile Include="Parser.fs" />
-    <Compile Include="Deserialize.fs" />
-    <Compile Include="Serializer.fs" />
+    <Compile Include="Parser\Cbon.Parser.fs" />
+    <Compile Include="Parser\Reader.fs" />
+    <Compile Include="Parser\Parser.fs" />
+    <Compile Include="Serializer\Deserialize.fs" />
+    <Compile Include="Serializer\Serializer.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>
 

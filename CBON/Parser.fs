@@ -1,6 +1,7 @@
-﻿module CbStyle.Cbon.Parser
+﻿module rec CbStyle.Cbon.Parser.Parser
 open System.Text.RegularExpressions
 open CbStyle.Cbon.Utils
+open CbStyle.Cbon.Parser
 open CbStyle.Cbon
 open System.Text
 
@@ -23,11 +24,11 @@ let hex_reg = Regex (@"0x[\da-fA-F]+[\da-fA-F_]*", RegexOptions.Compiled)
 
 //====================================================================================================
 
-let rec parser (code: Code Span) = arr_loop_body code (new MutList<CbAst>()) (fun code -> (code.IsEmpty, code)) |> sr
+let parser (code: Code Span) = arr_loop_body code (new MutList<CbAst>()) (fun code -> (code.IsEmpty, code)) |> sr
 
 //====================================================================================================
 
-and arr_loop (code: Code Span) = 
+let arr_loop (code: Code Span) = 
     match code.Get 0 with
     | ValueSome '[' -> ValueSome <| arr_loop_body code.[1..] (new MutList<CbAst>()) (fun code -> 
         if code.IsEmpty then (true, code) else
@@ -35,15 +36,15 @@ and arr_loop (code: Code Span) =
         | ValueSome ']' -> (true, code.[1..])
         | _ -> (false, code) )
     | _ -> ValueNone
-and arr_loop_body (code: Code Span) (item: CbAst MutList) (endf: Code Span -> struct(bool * Code Span)) = 
+let arr_loop_body (code: Code Span) (item: CbAst MutList) (endf: Code Span -> struct(bool * Code Span)) = 
     match endf code with
     | (true, code) -> (code, item)
     | (false, code) -> 
-    let r = str code =|=>=? CbAst.fStr
+    let r = str code =|=>=? CbAst.Str
         =>> (fun _ -> space code =|=>= none)
         =>> (fun _ -> comma code =|=>= none)
-        =>> (fun _ -> arr_loop code =|=>=? CbAst.fArr)
-        =>> (fun _ -> obj_loop code =|=>=? CbAst.fObj)
+        =>> (fun _ -> arr_loop code =|=>=? CbAst.Arr)
+        =>> (fun _ -> obj_loop code =|=>=? CbAst.Obj)
         =>> (fun _ -> word code =|=>= ValueSome)
     match r with
     | ValueNone -> raise <| ParserError ("Unexpected symbol \t at " + string(code.RawIndex 0))
@@ -55,7 +56,7 @@ and arr_loop_body (code: Code Span) (item: CbAst MutList) (endf: Code Span -> st
 
 //====================================================================================================
 
-and obj_loop (code: Code Span) =
+let obj_loop (code: Code Span) =
     match code.Get 0 with
     | ValueSome '{' -> ValueSome <| obj_loop_body code.[1..] (new MutMap<string, CbAst>()) (fun code ->
          if code.IsEmpty then (true, code) else
@@ -63,24 +64,25 @@ and obj_loop (code: Code Span) =
          | ValueSome '}' -> (true, code.[1..])
          | _ -> (false, code) )
     | _ -> ValueNone
-and obj_loop_body (code: Code Span) (item: MutMap<string, CbAst>) (endf: Code Span -> struct(bool * Code Span)) =
+let obj_loop_body (code: Code Span) (item: MutMap<string, CbAst>) (endf: Code Span -> struct(bool * Code Span)) =
     match comma code =>> (fun _ -> space code) with
     | ValueSome (code, _) -> obj_loop_body code item endf
     | ValueNone ->
     match endf code with
     | (true, code) -> (code, item)
     | (false, code) ->
-    let code = space code =>== sl ?== code
-    let struct(code1, k) = str code =>> (fun _ -> key code) ?==! ParserError ("Expected key but not found \t at " + string(code.RawIndex 0))
-    let code2 = space code1 =>== sl ?== code1
-    let code3 = split code2 =>== sl ?== code2
-    let code4 = space code3 =>== sl ?== code3
-    let r = str code4 =|=>=? CbAst.fStr
-        =>> (fun _ -> arr_loop code4 =|=>=? CbAst.fArr)
-        =>> (fun _ -> obj_loop code4 =|=>=? CbAst.fObj)
-        =>> (fun _ -> word code4 =|=>= ValueSome)
+    let mutable code = space code =>== sl ?== code
+    let struct(ncode, k) = str code =>> (fun _ -> key code) ?==! ParserError ("Expected key but not found \t at " + string(code.RawIndex 0))
+    code <- ncode
+    code <- space code =>== sl ?== code
+    code <- split code =>== sl ?== code
+    code <- space code =>== sl ?== code
+    let r = str code =|=>=? CbAst.Str
+        =>> (fun _ -> arr_loop code =|=>=? CbAst.Arr)
+        =>> (fun _ -> obj_loop code =|=>=? CbAst.Obj)
+        =>> (fun _ -> word code =|=>= ValueSome)
     match r with
-    | ValueNone -> raise <| ParserError ("Unexpected symbol \t at " + string(code4.RawIndex 0))
+    | ValueNone -> raise <| ParserError ("Unexpected symbol \t at " + string(code.RawIndex 0))
     | ValueSome (code: Code Span, v) -> 
     match v with
     | ValueSome v -> item.Add(k, v)
@@ -89,7 +91,7 @@ and obj_loop_body (code: Code Span) (item: MutMap<string, CbAst>) (endf: Code Sp
 
 //====================================================================================================
 
-and str code =
+let str code =
     match code.Get 0 with
     | ValueSome '"' -> ValueSome <| str_body code 1 '"' (StringBuilder())
     | ValueSome ''' -> ValueSome <| str_body code 1 ''' (StringBuilder())
@@ -97,7 +99,7 @@ and str code =
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //      ..."... ...'... ...\?...
 // index is ^    or ^     or ^
-and str_body code index quote sb =
+let str_body code index quote sb =
     let e = find_not code index (fun c -> c = quote || c = '\\' )
     match code.Get e with
     | ValueSome '\\' ->
@@ -115,7 +117,7 @@ and str_body code index quote sb =
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //      ...\...
 // index is ^ 
-and str_escape code index =
+let str_escape code index =
     match code.Get index with
     | ValueSome '\\' -> (index + 1, '\\')
     | ValueSome 'n' -> (index + 1, '\n')
@@ -131,7 +133,7 @@ and str_escape code index =
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //     ...\u...
 // index is ^ 
-and str_escape_unicode code index =
+let str_escape_unicode code index =
     match code.Get index with
     | ValueSome '{' -> str_escape_unicode_block code (index + 1)
     | ValueSome Hex -> str_escape_unicode_char code (index + 1)
@@ -139,7 +141,7 @@ and str_escape_unicode code index =
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //    ...\u{...
 // index is ^
-and str_escape_unicode_block code index = 
+let str_escape_unicode_block code index = 
     let e = find_not code index (fun c -> not_hex c )
     match code.Get e with
     | ValueSome '}' -> 
@@ -153,7 +155,7 @@ and str_escape_unicode_block code index =
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //    ...\uX...
 // index is ^ 
-and str_escape_unicode_char code index = 
+let str_escape_unicode_char code index = 
     let e = find_not code index (fun c -> not_hex c ) |> min (index + 6)
     let s = comStr code.[(index - 1)..e]
     let mutable c: uint64 = 0UL
@@ -164,7 +166,7 @@ and str_escape_unicode_char code index =
 
 //====================================================================================================
 
-and space code =
+let space code =
     match code.Get 0 with
     | ValueSome c when System.Char.IsWhiteSpace c -> 
         let e = find_not code 1 (fun c -> System.Char.IsWhiteSpace c |> not)
@@ -173,7 +175,7 @@ and space code =
 
 //====================================================================================================
 
-and word code =
+let word code =
     match code.Get 0 with
     | ValueNone -> ValueNone 
     | ValueSome c when not_word c -> ValueNone
@@ -185,21 +187,21 @@ and word code =
             | "true" -> CbAst.Bool true
             | "false" -> CbAst.Bool false
             | "null" -> CbAst.Null
-            | _ when hex_reg.IsMatch s -> CbAst.Hex (Hex <| s.Substring(2))
-            | _ when num_reg.IsMatch s -> CbAst.Num (Num s)
+            | _ when hex_reg.IsMatch s -> CbAst.Hex (AHex <| s.Substring(2))
+            | _ when num_reg.IsMatch s -> CbAst.Num (ANum s)
             | _ -> CbAst.Str s
         ValueSome (code.[e..], v)
 
 //====================================================================================================
 
-and comma code = 
+let comma code = 
     match code.Get 0 with
     | ValueSome ',' | ValueSome ';' -> ValueSome (code.[1..], ())
     | _ -> ValueNone
 
 //====================================================================================================
 
-and key code =
+let key code =
     match code.Get 0 with
     | ValueNone -> ValueNone 
     | ValueSome c when not_word c -> ValueNone
@@ -210,7 +212,7 @@ and key code =
 
 //====================================================================================================
 
-and split code = 
+let split code = 
     match code.Get 0 with
     | ValueSome ':' | ValueSome '=' -> ValueSome (code.[1..], ())
     | _ -> ValueNone

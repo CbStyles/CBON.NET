@@ -2,7 +2,8 @@
 
 open NUnit.Framework
 open CbStyle.Cbon.Parser
-open CbStyle.Cbon.Reader
+open CbStyle.Cbon.Parser.Parser
+open CbStyle.Cbon.Parser.Reader
 open CbStyle.Cbon
 open System.Collections.Generic
 

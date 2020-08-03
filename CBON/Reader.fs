@@ -1,4 +1,4 @@
-﻿namespace CbStyle.Cbon
+﻿namespace CbStyle.Cbon.Parser
 open System.Collections.Generic
 open System.Collections
 

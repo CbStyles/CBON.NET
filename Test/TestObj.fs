@@ -2,7 +2,8 @@
 
 open NUnit.Framework
 open CbStyle.Cbon.Parser
-open CbStyle.Cbon.Reader
+open CbStyle.Cbon.Parser.Parser
+open CbStyle.Cbon.Parser.Reader
 open CbStyle.Cbon
 open System.Collections.Generic
 
@@ -31,7 +32,7 @@ let TestObj2 () =
     Assert.AreEqual(Span<Code>(ref [||]), s)
 
     let e = new Dictionary<string, CbAst>()
-    e.Add("a", CbAst.Num (Num "1"))
+    e.Add("a", CbAst.Num (ANum "1"))
     CollectionAssert.AreEqual(e, r)
 
 [<Test>]
@@ -44,7 +45,7 @@ let TestObj3 () =
     Assert.AreEqual(Span<Code>(ref [||]), s)
 
     let e = new Dictionary<string, CbAst>()
-    e.Add("a", CbAst.Num (Num "1"))
+    e.Add("a", CbAst.Num (ANum "1"))
     e.Add("b", CbAst.Bool true)
     CollectionAssert.AreEqual(e, r)
 

@@ -2,7 +2,8 @@
 
 open NUnit.Framework
 open CbStyle.Cbon.Parser
-open CbStyle.Cbon.Reader
+open CbStyle.Cbon.Parser.Parser
+open CbStyle.Cbon.Parser.Reader
 open CbStyle.Cbon
 open System.Collections.Generic
 
@@ -30,7 +31,7 @@ let TestArr2 () =
     printf "(%s, %s)" (s.ToString()) (CbAst.ArrToString r)
     Assert.AreEqual(Span<Code>(ref [||]), s)
     let e = new List<CbAst>()
-    e.Add(CbAst.Num (Num "123"))
+    e.Add(CbAst.Num (ANum "123"))
     CollectionAssert.AreEqual(e, r)
 
 [<Test>]

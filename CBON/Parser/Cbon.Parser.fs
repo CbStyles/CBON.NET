@@ -195,21 +195,6 @@ type [<Struct>] AHex =
     member self.U64 (provider: System.IFormatProvider) = System.UInt64.Parse(self.raw, provider)
     member self.U64 (style: NumberStyles, provider: System.IFormatProvider) = System.UInt64.Parse(self.raw, style, provider)
 
-    member self.F32 () = System.Single.Parse(self.raw, NumberStyles.HexNumber)
-    member self.F32 (style: NumberStyles) = System.Single.Parse(self.raw, style)
-    member self.F32 (provider: System.IFormatProvider) = System.Single.Parse(self.raw, provider)
-    member self.F32 (style: NumberStyles, provider: System.IFormatProvider) = System.Single.Parse(self.raw, style, provider)
-
-    member self.F64 () = System.Double.Parse(self.raw, NumberStyles.HexNumber)
-    member self.F64 (style: NumberStyles) = System.Double.Parse(self.raw, style)
-    member self.F64 (provider: System.IFormatProvider) = System.Double.Parse(self.raw, provider)
-    member self.F64 (style: NumberStyles, provider: System.IFormatProvider) = System.Double.Parse(self.raw, style, provider)
-
-    member self.F128 () = System.Decimal.Parse(self.raw, NumberStyles.HexNumber)
-    member self.F128 (style: NumberStyles) = System.Decimal.Parse(self.raw, style)
-    member self.F128 (provider: System.IFormatProvider) = System.Decimal.Parse(self.raw, provider)
-    member self.F128 (style: NumberStyles, provider: System.IFormatProvider) = System.Decimal.Parse(self.raw, style, provider)
-
     member self.Try (result: sbyte outref) = System.SByte.TryParse(self.raw, NumberStyles.HexNumber, null, &result)
     member self.Try (style: NumberStyles, result: sbyte outref) = System.SByte.TryParse(self.raw, style, null, &result)
     member self.Try (provider: System.IFormatProvider, result: sbyte outref) = System.SByte.TryParse(self.raw, NumberStyles.HexNumber, provider, &result)
@@ -249,18 +234,3 @@ type [<Struct>] AHex =
     member self.Try (style: NumberStyles, result: uint64 outref) = System.UInt64.TryParse(self.raw, style, null, &result)
     member self.Try (provider: System.IFormatProvider, result: uint64 outref) = System.UInt64.TryParse(self.raw, NumberStyles.HexNumber, provider, &result)
     member self.Try (style: NumberStyles, provider: System.IFormatProvider, result: uint64 outref) = System.UInt64.TryParse(self.raw, style, provider, &result)
-
-    member self.Try (result: float32 outref) = System.Single.TryParse(self.raw, NumberStyles.HexNumber, null, &result)
-    member self.Try (style: NumberStyles, result: float32 outref) = System.Single.TryParse(self.raw, style, null, &result)
-    member self.Try (provider: System.IFormatProvider, result: float32 outref) = System.Single.TryParse(self.raw, NumberStyles.HexNumber, provider, &result)
-    member self.Try (style: NumberStyles, provider: System.IFormatProvider, result: float32 outref) = System.Single.TryParse(self.raw, style, provider, &result)
-
-    member self.Try (result: float outref) = System.Double.TryParse(self.raw, NumberStyles.HexNumber, null, &result)
-    member self.Try (style: NumberStyles, result: float outref) = System.Double.TryParse(self.raw, style, null, &result)
-    member self.Try (provider: System.IFormatProvider, result: float outref) = System.Double.TryParse(self.raw, NumberStyles.HexNumber, provider, &result)
-    member self.Try (style: NumberStyles, provider: System.IFormatProvider, result: float outref) = System.Double.TryParse(self.raw, style, provider, &result)
-
-    member self.Try (result: decimal outref) = System.Decimal.TryParse(self.raw, NumberStyles.HexNumber, null, &result)
-    member self.Try (style: NumberStyles, result: decimal outref) = System.Decimal.TryParse(self.raw, style, null, &result)
-    member self.Try (provider: System.IFormatProvider, result: decimal outref) = System.Decimal.TryParse(self.raw, NumberStyles.HexNumber, provider, &result)
-    member self.Try (style: NumberStyles, provider: System.IFormatProvider, result: decimal outref) = System.Decimal.TryParse(self.raw, style, provider, &result)

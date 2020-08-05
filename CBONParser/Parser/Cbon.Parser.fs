@@ -1,7 +1,9 @@
-﻿namespace rec CbStyle.Cbon.Parser
+﻿namespace rec CbStyles.Cbon.Parser
 open System.Globalization
 open System.Collections.Generic
-open CbStyle.Cbon.Utils
+open CbStyles.Cbon.Utils
+
+type Code = char
 
 type CbAst =
     | Null

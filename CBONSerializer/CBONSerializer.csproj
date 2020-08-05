@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>CbStyle.CBON</RootNamespace>
+    <Authors>CbStyles</Authors>
+    <Copyright>CbStyles</Copyright>
+    <Company>CbStyles</Company>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CBONParser\CBONParser.fsproj" />
+  </ItemGroup>
+
+</Project>

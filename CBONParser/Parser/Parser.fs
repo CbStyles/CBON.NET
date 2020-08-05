@@ -1,8 +1,8 @@
-﻿module rec CbStyle.Cbon.Parser.Parser
+﻿module rec CbStyles.Cbon.Parser.Parser
 open System.Text.RegularExpressions
-open CbStyle.Cbon.Utils
-open CbStyle.Cbon.Parser
-open CbStyle.Cbon
+open CbStyles.Cbon.Utils
+open CbStyles.Cbon.Parser
+open CbStyles.Parser
 open System.Text
 
 type ParserError(msg) =
@@ -17,7 +17,7 @@ let inline (|Hex|NotNex|) c = if is_hex c then Hex else NotNex
 let inline not_word c = c = '[' || c = '{' || c = ']' || c = '}' || c = ''' || c = '"' || c = ':' || c = '=' || c = ',' || c = ';' || System.Char.IsWhiteSpace c
 let inline is_word c = not <| not_word c
 
-let inline find_not (code: Code Span) index f = code.[index..] |> Seq.tryFindIndex f =>= (fun v -> v + index) ?= code.Length
+let inline find_not (code: Code Span) (index: int32) f = code.[index..] |> Seq.tryFindIndex f =>= (fun v -> v + index) ?= code.ILength
 
 let num_reg = Regex (@"(\d+[\d_]*(\.(\d+[\d_]*)?)?([eE][-+]?\d+[\d_]*)?)|(\.\d+[\d_]*([eE][-+]?\d+[\d_]*)?)", RegexOptions.Compiled)
 let hex_reg = Regex (@"0x[\da-fA-F]+[\da-fA-F_]*", RegexOptions.Compiled)

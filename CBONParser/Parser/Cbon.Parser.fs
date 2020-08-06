@@ -39,7 +39,7 @@ type CbAst =
 
 type [<Struct>] ANum =
     val raw: string
-    new(raw) = { raw = raw }
+    new(raw: string) = { raw = raw.Replace("_", "") }
     override self.ToString() = System.String.Format("Num({0})", self.raw)
 
     member self.I8 () = System.SByte.Parse(self.raw, NumberStyles.Any)

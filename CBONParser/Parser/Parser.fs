@@ -17,7 +17,7 @@ let inline (|Hex|NotNex|) c = if is_hex c then Hex else NotNex
 let inline not_word c = c = '[' || c = '{' || c = ']' || c = '}' || c = ''' || c = '"' || c = ':' || c = '=' || c = ',' || c = ';' || System.Char.IsWhiteSpace c
 let inline is_word c = not <| not_word c
 
-let inline find_not (code: Code Span) (index: int32) f = code.[index..] |> Seq.tryFindIndex f =>= (fun v -> v + index) ?= code.ILength
+let inline find_not (code: Code Span) (index: int32) f = code.[index..] |> Seq.tryFindIndex f =>= (fun v -> v + index) ?= code.Length
 
 let num_reg = Regex (@"(\d+[\d_]*(\.(\d+[\d_]*)?)?([eE][-+]?\d+[\d_]*)?)|(\.\d+[\d_]*([eE][-+]?\d+[\d_]*)?)", RegexOptions.Compiled)
 let hex_reg = Regex (@"0x[\da-fA-F]+[\da-fA-F_]*", RegexOptions.Compiled)
@@ -29,10 +29,10 @@ let parser (code: Code Span) = arr_loop_body code (new MutList<CbAst>()) (fun co
 //====================================================================================================
 
 let arr_loop (code: Code Span) = 
-    match code.Get 0 with
+    match code.TryGet 0 with
     | ValueSome '[' -> ValueSome <| arr_loop_body code.[1..] (new MutList<CbAst>()) (fun code -> 
         if code.IsEmpty then (true, code) else
-        match code.Get 0 with
+        match code.TryGet 0 with
         | ValueSome ']' -> (true, code.[1..])
         | _ -> (false, code) )
     | _ -> ValueNone
@@ -57,10 +57,10 @@ let arr_loop_body (code: Code Span) (item: CbAst MutList) (endf: Code Span -> st
 //====================================================================================================
 
 let obj_loop (code: Code Span) =
-    match code.Get 0 with
+    match code.TryGet 0 with
     | ValueSome '{' -> ValueSome <| obj_loop_body code.[1..] (new MutMap<string, CbAst>()) (fun code ->
          if code.IsEmpty then (true, code) else
-         match code.Get 0 with
+         match code.TryGet 0 with
          | ValueSome '}' -> (true, code.[1..])
          | _ -> (false, code) )
     | _ -> ValueNone
@@ -92,7 +92,7 @@ let obj_loop_body (code: Code Span) (item: MutMap<string, CbAst>) (endf: Code Sp
 //====================================================================================================
 
 let str code =
-    match code.Get 0 with
+    match code.TryGet 0 with
     | ValueSome '"' -> ValueSome <| str_body code 1 '"' (StringBuilder())
     | ValueSome ''' -> ValueSome <| str_body code 1 ''' (StringBuilder())
     | _ -> ValueNone
@@ -101,7 +101,7 @@ let str code =
 // index is ^    or ^     or ^
 let str_body code index quote sb =
     let e = find_not code index (fun c -> c = quote || c = '\\' )
-    match code.Get e with
+    match code.TryGet e with
     | ValueSome '\\' ->
         sb.Append (comStr code.[index..e]) |> ignore
         let (e, c: char) = str_escape code (e + 1)
@@ -118,7 +118,7 @@ let str_body code index quote sb =
 //      ...\...
 // index is ^ 
 let str_escape code index =
-    match code.Get index with
+    match code.TryGet index with
     | ValueSome '\\' -> (index + 1, '\\')
     | ValueSome 'n' -> (index + 1, '\n')
     | ValueSome 'r' -> (index + 1, '\r')
@@ -134,7 +134,7 @@ let str_escape code index =
 //     ...\u...
 // index is ^ 
 let str_escape_unicode code index =
-    match code.Get index with
+    match code.TryGet index with
     | ValueSome '{' -> str_escape_unicode_block code (index + 1)
     | ValueSome Hex -> str_escape_unicode_char code (index + 1)
     | _ -> (index, 'u')
@@ -143,7 +143,7 @@ let str_escape_unicode code index =
 // index is ^
 let str_escape_unicode_block code index = 
     let e = find_not code index (fun c -> not_hex c )
-    match code.Get e with
+    match code.TryGet e with
     | ValueSome '}' -> 
         let s = comStr code.[index..e]
         let mutable c: uint64 = 0UL
@@ -167,7 +167,7 @@ let str_escape_unicode_char code index =
 //====================================================================================================
 
 let space code =
-    match code.Get 0 with
+    match code.TryGet 0 with
     | ValueSome c when System.Char.IsWhiteSpace c -> 
         let e = find_not code 1 (fun c -> System.Char.IsWhiteSpace c |> not)
         ValueSome (code.[e..], ())
@@ -176,7 +176,7 @@ let space code =
 //====================================================================================================
 
 let word code =
-    match code.Get 0 with
+    match code.TryGet 0 with
     | ValueNone -> ValueNone 
     | ValueSome c when not_word c -> ValueNone
     | _ -> 
@@ -195,14 +195,14 @@ let word code =
 //====================================================================================================
 
 let comma code = 
-    match code.Get 0 with
+    match code.TryGet 0 with
     | ValueSome ',' | ValueSome ';' -> ValueSome (code.[1..], ())
     | _ -> ValueNone
 
 //====================================================================================================
 
 let key code =
-    match code.Get 0 with
+    match code.TryGet 0 with
     | ValueNone -> ValueNone 
     | ValueSome c when not_word c -> ValueNone
     | _ -> 
@@ -213,6 +213,6 @@ let key code =
 //====================================================================================================
 
 let split code = 
-    match code.Get 0 with
+    match code.TryGet 0 with
     | ValueSome ':' | ValueSome '=' -> ValueSome (code.[1..], ())
     | _ -> ValueNone

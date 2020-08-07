@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <Compile Include="Test.fs" />
+    <Compile Include="TestUnion.fs" />
     <Compile Include="TestArr.fs" />
     <Compile Include="TestObj.fs" />
     <Compile Include="TestWord.fs" />

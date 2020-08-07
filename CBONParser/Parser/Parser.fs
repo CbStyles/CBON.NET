@@ -14,7 +14,7 @@ let inline is_hex c = c <? ('0', '9') || c <? ('a', 'f') || c <? ('A', 'F')
 let inline not_hex c = not <| is_hex c
 let inline (|Hex|NotNex|) c = if is_hex c then Hex else NotNex
 
-let inline not_word c = c = '[' || c = '{' || c = ']' || c = '}' || c = ''' || c = '"' || c = ':' || c = '=' || c = ',' || c = ';' || System.Char.IsWhiteSpace c
+let inline not_word c = c = '[' || c = '{' || c = '(' || c = ']' || c = '}' || c = ')' || c = ''' || c = '"' || c = ':' || c = '=' || c = ',' || c = ';' || System.Char.IsWhiteSpace c
 let inline is_word c = not <| not_word c
 
 let inline find_not (code: Code Span) (index: int32) f = code.[index..] |> Seq.tryFindIndex f =>= (fun v -> v + index) ?= code.Length
@@ -43,6 +43,7 @@ let arr_loop_body (code: Code Span) (item: CbAst MutList) (endf: Code Span -> st
     let r = str code =|=>=? CbAst.Str
         =>> (fun _ -> space code =|=>= none)
         =>> (fun _ -> comma code =|=>= none)
+        =>> (fun _ -> union code =|=>=? CbAst.Union)
         =>> (fun _ -> arr_loop code =|=>=? CbAst.Arr)
         =>> (fun _ -> obj_loop code =|=>=? CbAst.Obj)
         =>> (fun _ -> word code =|=>= ValueSome)
@@ -77,16 +78,15 @@ let obj_loop_body (code: Code Span) (item: MutMap<string, CbAst>) (endf: Code Sp
     code <- space code =>== sl ?== code
     code <- split code =>== sl ?== code
     code <- space code =>== sl ?== code
-    let r = str code =|=>=? CbAst.Str
-        =>> (fun _ -> arr_loop code =|=>=? CbAst.Arr)
-        =>> (fun _ -> obj_loop code =|=>=? CbAst.Obj)
-        =>> (fun _ -> word code =|=>= ValueSome)
+    let r = str code =|=>= CbAst.Str
+        =>> (fun _ -> union code =|=>= CbAst.Union)
+        =>> (fun _ -> arr_loop code =|=>= CbAst.Arr)
+        =>> (fun _ -> obj_loop code =|=>= CbAst.Obj)
+        =>> (fun _ -> word code)
     match r with
     | ValueNone -> raise <| ParserError ("Unexpected symbol \t at " + string(code.RawIndex 0))
     | ValueSome (code: Code Span, v) -> 
-    match v with
-    | ValueSome v -> item.Add(k, v)
-    | _ -> ()
+    item.Add(k, v)
     obj_loop_body code item endf
 
 //====================================================================================================
@@ -215,4 +215,29 @@ let key code =
 let split code = 
     match code.TryGet 0 with
     | ValueSome ':' | ValueSome '=' -> ValueSome (code.[1..], ())
+    | _ -> ValueNone
+
+//====================================================================================================
+
+let union code =
+    match code.TryGet 0 with
+    | ValueSome '(' -> 
+        let mutable code = code.[1..]
+        code <- space code =>== sl ?== code
+        let struct(ncode, k) = str code =>> (fun _ -> key code) ?==! ParserError ("Expected tag but not found \t at " + string(code.RawIndex 0))
+        code <- ncode
+        code <- space code =>== sl ?== code
+        code <- 
+            (match code.TryGet 0 with
+            | ValueSome ')' -> ValueSome code.[1..]
+            | _ -> ValueNone) ?==! ParserError ("Tag not close \t at " + string(code.RawIndex 0))
+        code <- space code =>== sl ?== code
+        let r = str code =|=>= CbAst.Str
+            =>> (fun _ -> union code =|=>= CbAst.Union)
+            =>> (fun _ -> arr_loop code =|=>= CbAst.Arr)
+            =>> (fun _ -> obj_loop code =|=>= CbAst.Obj)
+            =>> (fun _ -> word code)
+        match r with
+        | ValueNone -> raise <| ParserError ("Unexpected symbol \t at " + string(code.RawIndex 0))
+        | ValueSome (code: Code Span, v) -> ValueSome (code, AUnion(k, v) )
     | _ -> ValueNone

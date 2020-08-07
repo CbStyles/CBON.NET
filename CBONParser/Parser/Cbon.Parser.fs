@@ -13,6 +13,7 @@ type CbAst =
     | Str of string
     | Arr of CbAst MutList
     | Obj of MutMap<string, CbAst>
+    | Union of AUnion
 
     static member ArrToString (arr: #IList<'v>) = 
         "[" + System.String.Join(",", arr |> Seq.map (fun v -> " " + v.ToString())) + " ]"
@@ -26,6 +27,7 @@ type CbAst =
     static member ToString (s: string) = "\"" + s.Replace("\"", "\\\"") + "\""
     static member ToString (n: ANum) = n.raw
     static member ToString (n: AHex) = n.raw
+    static member ToString (u: AUnion) = u.ToString()
 
     override self.ToString() = 
         match self with
@@ -36,6 +38,7 @@ type CbAst =
         | Str s -> "\"" + s.Replace("\"", "\\\"") + "\""
         | Arr a -> CbAst.ArrToString a
         | Obj o -> CbAst.ObjToString o
+        | Union u -> u.ToString()
 
 type [<Struct>] ANum =
     val raw: string
@@ -236,3 +239,9 @@ type [<Struct>] AHex =
     member self.Try (style: NumberStyles, result: uint64 outref) = System.UInt64.TryParse(self.raw, style, null, &result)
     member self.Try (provider: System.IFormatProvider, result: uint64 outref) = System.UInt64.TryParse(self.raw, NumberStyles.HexNumber, provider, &result)
     member self.Try (style: NumberStyles, provider: System.IFormatProvider, result: uint64 outref) = System.UInt64.TryParse(self.raw, style, provider, &result)
+
+type [<Struct>] AUnion =
+    val tag: string
+    val value: CbAst
+    new (tag, value) = { tag = tag; value = value }
+    override self.ToString() = "(" + self.tag + ") " + self.value.ToString()

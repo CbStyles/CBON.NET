@@ -1,5 +1,5 @@
-﻿namespace CbStyle.Cbon
-open CbStyle.Cbon.Utils
+﻿namespace CbStyles.Cbon
+open CbStyles.Cbon.Utils
 
 type CbVal = 
     | Bool of bool

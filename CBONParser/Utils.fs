@@ -1,4 +1,4 @@
-﻿module internal CbStyle.Cbon.Utils
+﻿module internal CbStyles.Cbon.Utils
 
 type MutList<'a> = System.Collections.Generic.List<'a>
 type MutMap<'k, 'v> = System.Collections.Generic.Dictionary<'k, 'v>

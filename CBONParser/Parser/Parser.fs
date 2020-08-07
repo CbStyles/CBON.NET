@@ -239,5 +239,5 @@ let union code =
             =>> (fun _ -> word code)
         match r with
         | ValueNone -> raise <| ParserError ("Unexpected symbol \t at " + string(code.RawIndex 0))
-        | ValueSome (code: Code Span, v) -> ValueSome (code, AUnion(k, v) )
+        | ValueSome (code: Code Span, v) -> ValueSome (code, AUnion(k, v))
     | _ -> ValueNone

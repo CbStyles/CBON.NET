@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{52A48F78
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "TestParser", "TestParser\TestParser.fsproj", "{1F6D1A3C-2AD7-41A6-8F23-32285175882B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestSerializer", "TestSerializer\TestSerializer.csproj", "{F38659F5-B166-499B-A012-56B8D30E320F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,12 +37,17 @@ Global
 		{1F6D1A3C-2AD7-41A6-8F23-32285175882B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1F6D1A3C-2AD7-41A6-8F23-32285175882B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1F6D1A3C-2AD7-41A6-8F23-32285175882B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F38659F5-B166-499B-A012-56B8D30E320F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F38659F5-B166-499B-A012-56B8D30E320F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F38659F5-B166-499B-A012-56B8D30E320F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F38659F5-B166-499B-A012-56B8D30E320F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{1F6D1A3C-2AD7-41A6-8F23-32285175882B} = {52A48F78-4FCA-4E36-B522-A389BE31B00D}
+		{F38659F5-B166-499B-A012-56B8D30E320F} = {52A48F78-4FCA-4E36-B522-A389BE31B00D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {91135298-7F98-441A-A87A-36712F16071A}

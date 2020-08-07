@@ -27,7 +27,7 @@ namespace CbStyles.Cbon
         {
             public static void CheckDeType(Type t)
             {
-                if (!t.IsSerializable) throw new DeserializeError("This type cannot be deserialized");
+                if (!t.IsSerializable && t.GetCustomAttribute<CbonAttribute>() == null && t.GetCustomAttribute<CbonUnionAttribute>() == null) throw new DeserializeError("This type cannot be deserialized");
                 if (t.IsAbstract) throw new DeserializeError("Cannot deserialize abstract class");
                 if (t.IsInterface) throw new DeserializeError("Cannot deserialize interface");
                 if (t.IsCOMObject) throw new DeserializeError("Cannot deserialize COM object");

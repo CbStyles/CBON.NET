@@ -22,10 +22,6 @@ namespace CbStyles.Cbon
         /// </summary>
         OptIn =         0b_00_00_01,
         /// <summary>
-        /// Only members marked with <see cref="CbonAttribute"/> { ignore = true } or <see cref="CbonIgnoreAttribute"/> or <see cref="NonSerializedAttribute"/> are not be serialized
-        /// </summary>
-        OptOut =        0b_00_00_11,
-        /// <summary>
         /// Will serialize fields
         /// </summary>
         Fields =        0b_00_01_00,
@@ -48,7 +44,7 @@ namespace CbStyles.Cbon
         /// <summary>
         /// Serialize all public fields and properties by default
         /// </summary>
-        Default = Member | OptOut | Public,
+        Default = Member | Public,
         /// <summary>
         /// Serialize all member
         /// </summary>
@@ -58,8 +54,10 @@ namespace CbStyles.Cbon
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum | AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Constructor, AllowMultiple = false, Inherited = true)]
     public sealed class CbonAttribute : Attribute
     {
+        public static readonly CbonAttribute Default = new CbonAttribute();
+
         /// <summary>
-        /// <para>If there are extra items, an error will be thrown</para>
+        /// <para>If there are extra items on deserialize, an error will be thrown</para>
         /// <para>Only for Class and Struct</para>
         /// </summary>
         public bool Strict { get; set; } = false;
@@ -90,7 +88,6 @@ namespace CbStyles.Cbon
         /// <para>Only for Field and Property</para>
         /// </summary>
         public bool Ignore { get; set; } = false;
-        
 
         public CbonAttribute() { }
 

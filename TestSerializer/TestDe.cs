@@ -1,6 +1,8 @@
 using CbStyles.Cbon;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace TestSerializer
 {
@@ -11,49 +13,33 @@ namespace TestSerializer
         {
         }
 
-        [Serializable]
-        class OTestDe1
-        {
-            public int a;
-            private int b = 0;
-
-            public OTestDe1() { }
-            public OTestDe1(int a) => this.a = a;
-
-            public override bool Equals(object obj) => obj is OTestDe1 de && a == de.a && b == de.b;
-            public override string ToString() => $"{{ a: {a}, b: {b} }}";
-            public override int GetHashCode() => throw new NotImplementedException();
-        }
         [Test]
         public void TestDe1()
         {
             var code = "{ a 3 b 2 }";
-            var r = SeDe.DoDe<OTestDe1>(code);
+            var r = SeDe.DoDe<OTestA1>(code);
             Console.WriteLine(r);
-            Assert.AreEqual(new OTestDe1(3), r);
+            Assert.AreEqual(new OTestA1(3), r);
         }
 
-        [Cbon]
-        class OTestDe2
-        {
-            public int a;
-            private int b = 0;
-
-            public OTestDe2() { }
-            public OTestDe2(int a) => this.a = a;
-
-            public override bool Equals(object obj) => obj is OTestDe2 de && a == de.a && b == de.b;
-            public override string ToString() => $"{{ a: {a}, b: {b} }}";
-            public override int GetHashCode() => throw new NotImplementedException();
-        }
         [Test]
         public void TestDe2()
         {
             var code = "{ a 3 b 2 }";
-            var r = SeDe.DoDe<OTestDe2>(code);
+            var r = SeDe.DoDe<OTestA2>(code);
             Console.WriteLine(r);
-            Assert.AreEqual(new OTestDe2(3), r);
+            Assert.AreEqual(new OTestA2(3), r);
         }
+
+        [Test]
+        public void TestDe3()
+        {
+            var code = "[1 2 3]";
+            var r = SeDe.DoDe<List<int>>(code);
+            Console.WriteLine(r);
+            Assert.AreEqual(new[] { 1, 2, 3 }.ToList(), r);
+        }
+
     }
 
     

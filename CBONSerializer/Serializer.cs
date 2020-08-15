@@ -1,4 +1,5 @@
-﻿using CbStyles.Cbon.Errors;
+﻿#nullable enable
+using CbStyles.Cbon.Errors;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -35,18 +36,32 @@ namespace CbStyles.Cbon
                 public string Tab => new string(' ', tab);
             }
 
-            public static void CheckSeType(Type t)
+            public static Type CheckSeType(Type t)
             {
-                if (!t.IsSerializable && t.GetCustomAttribute<CbonAttribute>() == null && t.GetCustomAttribute<CbonUnionAttribute>() == null) throw new SerializeError("This type cannot be serialized");
-                if (t.IsAbstract) throw new SerializeError("Cannot serialize abstract class");
-                if (t.IsInterface) throw new SerializeError("Cannot serialize interface");
+                if (!t.IsSerializable 
+                    && t.GetCustomAttribute<CbonAttribute>() == null 
+                    && t.GetCustomAttribute<CbonUnionAttribute>() == null 
+                    && t.GetCustomAttribute<CbonUnionItemAttribute>() == null) throw new SerializeError("This type cannot be serialized");
+                if (t.GetCustomAttribute<CbonUnionAttribute>() == null)
+                {
+                    if (t.IsAbstract) throw new SerializeError("Cannot serialize abstract class");
+                    if (t.IsInterface) throw new SerializeError("Cannot serialize interface");
+                }
                 if (t.IsCOMObject) throw new SerializeError("Cannot serialize COM object");
                 if (t.IsPointer) throw new SerializeError("Cannot serialize pointer");
+                return t;
             }
 
-            public static string ArrSe(Type t, List<object> items, SeCtx ctx)
+            public static string ArrSe(Type t, IEnumerable items, SeCtx ctx)
             {
-                return string.Concat((from item in items select ItemSe(t, item, ctx)));
+                IEnumerable<object> f()
+                {
+                    foreach (var item in items)
+                    {
+                        yield return item;
+                    }
+                }
+                return string.Join(" ", (from item in f() select ItemSe(t, item, ctx)));
             }
 
             public static string ItemSe(Type t, object o, SeCtx ctx)
@@ -54,8 +69,8 @@ namespace CbStyles.Cbon
                 if (o == null) return "null";
                 if (t.IsPrimitive) return SePrimitive(t, o);
                 if (typeof(string).IsAssignableFrom(t)) return SeStr(o);
-                if (typeof(IEnumerable).IsAssignableFrom(t)) return SeArr(t, o, ctx);
-                if (t.IsEnum) return SeEnum(t, o, ctx);
+                if (typeof(IEnumerable).IsAssignableFrom(t)) return SeArr(o, ctx);
+                if (t.IsEnum) return SeEnum(t, o);
                 if (t.GetCustomAttribute<CbonUnionAttribute>() != null) return SeUnion(t, o, ctx);
                 return SeObj(t, o, ctx);
             }
@@ -94,7 +109,7 @@ namespace CbStyles.Cbon
                 };
             }
 
-            public static string SeArr(Type t, object o, SeCtx ctx)
+            public static string SeArr(object o, SeCtx ctx)
             {
                 var arr = (IEnumerable)(o);
                 IEnumerable<string> f()
@@ -106,7 +121,7 @@ namespace CbStyles.Cbon
                         yield return ItemSe(t, v, ctx);
                     }
                 }
-                return $"[${string.Join(" ", f())}]";
+                return $"[{string.Join(" ", f())}]";
             }
 
             public static string SeObj(Type t, object o, SeCtx ctx)
@@ -123,20 +138,76 @@ namespace CbStyles.Cbon
                         if (cb.Member.HasFlag(CbonMember.OptIn)) if (field.GetCustomAttribute<CbonAttribute>() == null && field.GetCustomAttribute<DataContractAttribute>() == null) continue;
                         var fcb = field.GetCustomAttribute<CbonAttribute>() ?? CbonAttribute.Default;
                         if (fcb.Ignore || field.GetCustomAttribute<NonSerializedAttribute>() != null) continue;
-                        
+                        var name = SeKey(fcb.Name ?? field.Name);
+                        var ft = CheckSeType(field.FieldType);
+                        var fs = ItemSe(ft, field.GetValue(o), ctx);
+                        items.Add($"{name} {fs}");
                     }
                 }
-                throw new NotImplementedException("todo");
+                if (cb.Member.HasFlag(CbonMember.Properties))
+                {
+                    var props = t.GetProperties(BindingFlags.Instance | (cb.Member.HasFlag(CbonMember.Public) ? BindingFlags.Public : 0) | (cb.Member.HasFlag(CbonMember.Private) ? BindingFlags.NonPublic : 0));
+                    foreach (var prop in props)
+                    {
+                        if (!prop.CanRead) continue;
+                        if (prop.GetCustomAttribute<CbonIgnoreAttribute>() != null) continue;
+                        if (cb.Member.HasFlag(CbonMember.OptIn)) if (prop.GetCustomAttribute<CbonAttribute>() == null && prop.GetCustomAttribute<DataContractAttribute>() == null) continue;
+                        var pcb = prop.GetCustomAttribute<CbonAttribute>() ?? CbonAttribute.Default;
+                        if (pcb.Ignore || prop.GetCustomAttribute<NonSerializedAttribute>() != null) continue;
+                        var name = SeKey(pcb.Name ?? prop.Name);
+                        var pt = CheckSeType(prop.PropertyType);
+                        var ps = ItemSe(pt, prop.GetValue(o), ctx);
+                        items.Add($"{name} {ps}");
+                    }
+                }
+                return $"{{{string.Join(" ", items)}}}";
             }
 
-            public static string SeEnum(Type t, object o, SeCtx ctx)
+            public static string SeKey(string s)
             {
-                throw new NotImplementedException("todo");
+                if (s.Length == 0 || not_word_reg.IsMatch(s)) return SeStrQuot(s);
+                return s;
+            }
+
+            public static string SeEnum(Type t, object o)
+            {
+                var cb = t.GetCustomAttribute<CbonAttribute>() ?? CbonAttribute.Default;
+                if(cb.Union || t.GetCustomAttribute<CbonUnionAttribute>() != null)
+                {
+                    var raw_name = Enum.GetName(t, o);
+                    var variant = t.GetMember(raw_name).FirstOrDefault(m => m.DeclaringType == t);
+                    var name = variant.GetCustomAttribute<CbonAttribute>()?.Name ?? raw_name;
+                    return SeStr(name);
+                }
+                return Convert.ChangeType(o, ((Enum)o).GetTypeCode()).ToString();
             }
 
             public static string SeUnion(Type t, object o, SeCtx ctx)
             {
-                throw new NotImplementedException("todo");
+                if (t.IsAbstract || t.IsInterface) return SeUnionClass(t, o, ctx);
+                throw new SerializeError($"<{t.FullName}> cannot be union");
+            }
+
+            public static string SeUnionClass(Type t, object o, SeCtx ctx)
+            {
+                var ot = o.GetType();
+                var cbu = t.GetCustomAttribute<CbonUnionAttribute>();
+                var variants = cbu.CheckItems(t);
+                (string, Type)? getVariant()
+                {
+                    foreach (var variant in variants)
+                    {
+                        if (variant.Value.IsAssignableFrom(ot)) return (variant.Key, variant.Value);
+                    }
+                    return null;
+                }
+                var variant = getVariant();
+                if(variant == null) throw new SerializeError($"Value is not variant of <{t.FullName}>");
+                (string vn, Type vt) = variant.Value;
+                CheckSeType(vt);
+                var val = ItemSe(vt, o, ctx);
+                var tag = SeKey(vn);
+                return $"({tag}){val}";
             }
         }
     }

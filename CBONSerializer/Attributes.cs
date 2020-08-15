@@ -4,6 +4,7 @@ using System.Runtime.Serialization;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Text;
+using System.Reflection;
 
 namespace CbStyles.Cbon
 {
@@ -46,21 +47,24 @@ namespace CbStyles.Cbon
         /// </summary>
         Default = Member | Public,
         /// <summary>
+        /// Default with OptIn
+        /// </summary>
+        Opt = Default | OptIn,
+        /// <summary>
         /// Serialize all member
         /// </summary>
         All = Default | Private,
+        /// <summary>
+        /// All with OptIn
+        /// </summary>
+        AllOpt = All | OptIn,
     }
 
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum | AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Constructor, AllowMultiple = false, Inherited = true)]
     public sealed class CbonAttribute : Attribute
     {
-        public static readonly CbonAttribute Default = new CbonAttribute();
+        internal static readonly CbonAttribute Default = new CbonAttribute();
 
-        /// <summary>
-        /// <para>If there are extra items on deserialize, an error will be thrown</para>
-        /// <para>Only for Class and Struct</para>
-        /// </summary>
-        public bool Strict { get; set; } = false;
         /// <summary>
         /// <para>Control member serialization</para>
         /// <para>Only for Class and Struct</para>
@@ -75,11 +79,11 @@ namespace CbStyles.Cbon
 
         /// <summary>
         /// <para>The name for Field or Property</para>
-        /// <para>Only for Field and Property</para>
+        /// <para>Only for Field and Property and Enum Variant</para>
         /// </summary>
         public string? Name { get; set; } = null;
         /// <summary>
-        /// <para>Only for Field and Property</para>
+        /// <para>Only for Field, Property, Class, Struct</para>
         /// <para>If it does not exist during deserialization, an error will be thrown</para>
         /// </summary>
         public bool Required { get; set; } = false;
@@ -92,7 +96,7 @@ namespace CbStyles.Cbon
         public CbonAttribute() { }
 
         /// <summary>
-        /// <para>Only for Field and Property</para>
+        /// <para>Only for Field and Property and Enum Variant</para>
         /// </summary>
         /// <param name="name">The name for Field or Property</param>
         public CbonAttribute(string name) => Name = name;
@@ -112,12 +116,16 @@ namespace CbStyles.Cbon
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
     public sealed class CbonIgnoreAttribute : Attribute { }
 
+    public class CbonUnionError : Exception
+    {
+        public CbonUnionError(string message) : base(message) { }
+    }
+
     /// <summary>
     /// <para>For enum will use enum name instead of enum value</para>
     /// <para>For abstract class and interface will use items and serialize to <code>(TagName)ItemData</code></para>
-    /// <para>For [<see cref="StructLayoutAttribute"/>(<see cref="LayoutKind.Explicit"/>)] struct while need tagis and all item need <see cref="CbonUnionTag"/></para>
     /// </summary>
-    [AttributeUsage(AttributeTargets.Enum | AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct, AllowMultiple = false, Inherited = true)]
+    [AttributeUsage(AttributeTargets.Enum | AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = false, Inherited = false)]
     public sealed class CbonUnionAttribute : Attribute
     {
         /// <summary>
@@ -126,11 +134,26 @@ namespace CbStyles.Cbon
         /// </summary>
         public Type[] Items { get; set; } = Type.EmptyTypes;
 
-        /// <summary>
-        /// <para>Tag field name</para>
-        /// <para>Only for Union Struct</para>
-        /// </summary>
-        public string? TagIs { get; set; } = null;
+        internal Dictionary<string, Type> CheckItems(Type self)
+        {
+            if (Items.Length == 0) throw new CbonUnionError($"Union cannot have 0 variants on <{self.FullName}>");
+            var names = new Dictionary<string, Type>();
+            var types = new HashSet<string>();
+            foreach (var item in Items)
+            {
+                var cbui = item.GetCustomAttribute<CbonUnionItemAttribute>();
+                if (cbui == null) throw new CbonUnionError($"The union variant <{item.FullName}> must have [CbonUnionItem] attribute");
+                var itemName = cbui.TagName ?? item.Name;
+                var fullname = item.FullName;
+                var sameType = types.Contains(itemName);
+                if (sameType) throw new CbonUnionError($"union cannot have 2 same variants on <{self.FullName}> of <{fullname}>");
+                var sameName = names.GetValueOrDefault(itemName);
+                if (sameName != null) throw new CbonUnionError($"The union variant <{fullname}> has the same tag name as <{sameName.FullName}> on <{self.FullName}>");
+                types.Add(itemName);
+                names.Add(itemName, item);
+            }
+            return names;
+        }
 
         public CbonUnionAttribute() { }
 
@@ -139,35 +162,19 @@ namespace CbStyles.Cbon
         /// </summary>
         /// <param name="items">Union items</param>
         public CbonUnionAttribute(params Type[] items) => Items = items;
-
-        /// <summary>
-        /// <para>Only for Union Struct</para>
-        /// </summary>
-        /// <param name="tagIs">Tag field name</param>
-        public CbonUnionAttribute(string tagIs) => TagIs = tagIs;
     }
 
-    [AttributeUsage(AttributeTargets.Enum | AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct, AllowMultiple = false, Inherited = true)]
+    /// <summary>
+    /// <para>OnlyFor UnionAbstractClass items or UnionInterface items, not for Enum</para>
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Enum | AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
     public sealed class CbonUnionItemAttribute : Attribute
     {
         public string? TagName { get; set; } = null;
 
-        public Type Belong { get; set; }
+        public CbonUnionItemAttribute() { }
 
-        public CbonUnionItemAttribute(Type belong) => Belong = belong;
-
-        public CbonUnionItemAttribute(Type belong, string tagName) : this(belong) => TagName = tagName;
-    }
-
-    /// <summary>
-    /// Set tag name
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = true)]
-    public sealed class CbonUnionTagAttribute : Attribute
-    {
-        public string TagName { get; set; }
-
-        public CbonUnionTagAttribute(string tagName) => TagName = tagName;
+        public CbonUnionItemAttribute(string tagName) => TagName = tagName;
     }
 
 }

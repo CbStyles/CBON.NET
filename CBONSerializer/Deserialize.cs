@@ -14,6 +14,7 @@ namespace CbStyles.Cbon
         public class DeserializeError : Exception
         {
             public DeserializeError(string message) : base(message) { }
+            public DeserializeError(string message, Exception innerException) : base(message, innerException) { } 
         }
         public class DeserializeTypeError : Exception
         {
@@ -25,13 +26,17 @@ namespace CbStyles.Cbon
     {
         internal static class De
         {
-            public static void CheckDeType(Type t)
+            public static Type CheckDeType(Type t)
             {
-                if (!t.IsSerializable && t.GetCustomAttribute<CbonAttribute>() == null && t.GetCustomAttribute<CbonUnionAttribute>() == null) throw new DeserializeError("This type cannot be deserialized");
+                if (!t.IsSerializable
+                    && t.GetCustomAttribute<CbonAttribute>() == null
+                    && t.GetCustomAttribute<CbonUnionAttribute>() == null
+                    && t.GetCustomAttribute<CbonUnionItemAttribute>() == null) throw new DeserializeError("This type cannot be deserialized");
                 if (t.IsAbstract) throw new DeserializeError("Cannot deserialize abstract class");
                 if (t.IsInterface) throw new DeserializeError("Cannot deserialize interface");
                 if (t.IsCOMObject) throw new DeserializeError("Cannot deserialize COM object");
                 if (t.IsPointer) throw new DeserializeError("Cannot deserialize pointer");
+                return t;
             }
 
             public static List<T> ArrDe<T>(Type t, List<CbAst> ast) => ast.Count == 0 ? new List<T>() : (from v in ast select ItemDe<T>(t, v)).ToList();
@@ -39,7 +44,8 @@ namespace CbStyles.Cbon
             public static object ItemDe(Type t, CbAst ast) => t.IsPrimitive ? DePrimitive(t, ast) : typeof(string).IsAssignableFrom(t) ? DeStr(t, ast) : ast switch
             {
                 CbAst.Obj { Item: var v } => DeObj(t, v),
-                CbAst.Arr { Item: var v } => throw new NotImplementedException("todo"),
+                CbAst.Arr { Item: var v } => DeArr(t, v),
+                CbAst.Union _ => throw new NotImplementedException("todo"),
                 var a when a.IsNull => null,
                 var a when a.IsStr => throw new DeserializeTypeError("string", t.FullName),
                 var a when a.IsNum => throw new DeserializeTypeError("number", t.FullName),
@@ -111,42 +117,99 @@ namespace CbStyles.Cbon
                 var a when a.IsObj => throw new DeserializeTypeError("object", t.FullName),
                 _ => throw new NotImplementedException("never"),
             };
-        
+
+            const BindingFlags ConstructorFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
             public static object DeObj(Type t, Dictionary<string, CbAst> ast)
             {
-                const BindingFlags ConstructorFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-                const BindingFlags MemberFlags = BindingFlags.Instance | BindingFlags.Public;
-
+                var cb = t.GetCustomAttribute<CbonAttribute>() ?? CbonAttribute.Default;
                 var constructor = t.GetConstructor(ConstructorFlags, null, Type.EmptyTypes, null);
                 var obj = constructor != null ? constructor.Invoke(Array.Empty<object>()) : t.GetConstructors(ConstructorFlags).Length == 0 ? 
                     FormatterServices.GetUninitializedObject(t) : throw new DeserializeError($"Cannot construct this type : {t.FullName}");
+                if (cb.Member == 0) return obj;
 
-                var fields = t.GetFields(MemberFlags);
-                foreach (var field in fields)
+                if (cb.Member.HasFlag(CbonMember.Fields))
                 {
-                    if (ast.TryGetValue(field.Name, out var v))
+                    var fields = t.GetFields(BindingFlags.Instance | (cb.Member.HasFlag(CbonMember.Public) ? BindingFlags.Public : 0) | (cb.Member.HasFlag(CbonMember.Private) ? BindingFlags.NonPublic : 0));
+                    foreach (var field in fields)
                     {
-                        var ft = field.FieldType;
-                        CheckDeType(ft);
-                        var va = ItemDe(ft, v);
-                        field.SetValue(obj, va);
+                        if (field.GetCustomAttribute<CbonIgnoreAttribute>() != null) continue;
+                        if (cb.Member.HasFlag(CbonMember.OptIn)) if (field.GetCustomAttribute<CbonAttribute>() == null && field.GetCustomAttribute<DataContractAttribute>() == null) continue;
+                        var fcb = field.GetCustomAttribute<CbonAttribute>() ?? CbonAttribute.Default;
+                        if (fcb.Ignore || field.GetCustomAttribute<NonSerializedAttribute>() != null) continue;
+                        var name = fcb.Name ?? field.Name;
+                        if (ast.TryGetValue(name, out var v))
+                        {
+                            var ft = field.FieldType;
+                            CheckDeType(ft);
+                            var va = ItemDe(ft, v);
+                            field.SetValue(obj, va);
+                        } 
+                        else if(cb.Required || fcb.Required) throw new DeserializeError($"Need <{t.FullName}.{field.Name}> but not found");
                     }
                 }
 
-                var props = t.GetProperties(MemberFlags);
-                foreach (var prop in props)
+                if (cb.Member.HasFlag(CbonMember.Properties))
                 {
-                    if (!prop.CanWrite) continue;
-                    if (ast.TryGetValue(prop.Name, out var v))
+                    var props = t.GetProperties(BindingFlags.Instance | (cb.Member.HasFlag(CbonMember.Public) ? BindingFlags.Public : 0) | (cb.Member.HasFlag(CbonMember.Private) ? BindingFlags.NonPublic : 0));
+                    foreach (var prop in props)
                     {
-                        var pt = prop.PropertyType;
-                        CheckDeType(pt);
-                        var va = ItemDe(pt, v);
-                        prop.SetValue(obj, va);
+                        if (!prop.CanWrite) continue;
+                        if (prop.GetCustomAttribute<CbonIgnoreAttribute>() != null) continue;
+                        if (cb.Member.HasFlag(CbonMember.OptIn)) if (prop.GetCustomAttribute<CbonAttribute>() == null && prop.GetCustomAttribute<DataContractAttribute>() == null) continue;
+                        var pcb = prop.GetCustomAttribute<CbonAttribute>() ?? CbonAttribute.Default;
+                        if (pcb.Ignore || prop.GetCustomAttribute<NonSerializedAttribute>() != null) continue;
+                        var name = pcb.Name ?? prop.Name;
+                        if (ast.TryGetValue(name, out var v))
+                        {
+                            var pt = prop.PropertyType;
+                            CheckDeType(pt);
+                            var va = ItemDe(pt, v);
+                            prop.SetValue(obj, va);
+                        }
                     }
                 }
 
                 return obj;
+            }
+
+            public static readonly Type ic = typeof(ICollection<>);
+            public static object DeArr(Type t, List<CbAst> asts)
+            {
+                var ifs = t.GetInterfaces();
+                var ics = (from i in ifs where i.IsGenericType && i.GetGenericTypeDefinition() == ic select i).ToList();
+                if (ics.Count == 0) throw new DeserializeError($"Deserialize <array> need target <{t.FullName}> implement <{ic.FullName}>");
+                foreach (var ic in ics) CheckDeType(ic.GetGenericArguments()[0]);
+
+                var constructor = t.GetConstructor(ConstructorFlags, null, Type.EmptyTypes, null);
+                var arr = constructor != null ? constructor.Invoke(Array.Empty<object>()) : t.GetConstructors(ConstructorFlags).Length == 0 ?
+                    FormatterServices.GetUninitializedObject(t) : throw new DeserializeError($"Cannot construct this type : {t.FullName}");
+
+                var errs = new List<DeserializeError>();
+                foreach (var ast in asts)
+                {
+                    
+                    foreach (var ic in ics)
+                    {
+                        var gt = ic.GetGenericArguments()[0];
+                        try
+                        {
+                            var f = ic.GetMethod("Add", new[] { gt });
+                            var v = ItemDe(gt, ast);
+                            f.Invoke(arr, new[] { v });
+                            goto aloop;
+                        } 
+                        catch(DeserializeError deErr)
+                        {
+                            errs.Add(deErr);
+                        }
+                    }
+                    if(errs.Count > 0) throw new DeserializeError("Multiple error", new AggregateException(errs));
+                    aloop:
+                    continue;
+                }
+                if (errs.Count > 0) throw new DeserializeError("Multiple error", new AggregateException(errs));
+                return arr;
             }
 
         }

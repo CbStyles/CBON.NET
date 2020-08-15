@@ -208,7 +208,6 @@ namespace CbStyles.Cbon
                     aloop:
                     continue;
                 }
-                if (errs.Count > 0) throw new DeserializeError("Multiple error", new AggregateException(errs));
                 return arr;
             }
 

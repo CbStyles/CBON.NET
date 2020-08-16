@@ -24,7 +24,7 @@ namespace CbStyles.Cbon
         }
     }
 
-    public static partial class SeDe
+    public static partial class Cbon
     {
         internal static class De
         {

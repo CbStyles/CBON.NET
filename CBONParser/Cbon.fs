@@ -7,3 +7,4 @@ type CbVal =
     | Str of string
     | Arr of CbVal MutList
     | Obj of MutMap<string, CbVal>
+    | Union of Tag: string * Value: CbVal

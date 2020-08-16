@@ -11,6 +11,7 @@
     <RepositoryUrl>https://github.com/CbStyles/CBON.NET.git</RepositoryUrl>
     <PackageProjectUrl>https://github.com/CbStyles/CBON.NET</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

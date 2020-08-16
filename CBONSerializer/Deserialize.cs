@@ -6,6 +6,7 @@ using CbStyles.Cbon.Errors;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
+using System.Runtime.CompilerServices;
 
 namespace CbStyles.Cbon
 {
@@ -26,26 +27,34 @@ namespace CbStyles.Cbon
     {
         internal static class De
         {
+
+            static readonly ConditionalWeakTable<Type, Type> CheckDeTypeTemp = new ConditionalWeakTable<Type, Type>();
+
             public static Type CheckDeType(Type t)
             {
+                if (CheckDeTypeTemp.TryGetValue(t, out var _)) return t;
                 if (!t.IsSerializable
                     && t.GetCustomAttribute<CbonAttribute>() == null
                     && t.GetCustomAttribute<CbonUnionAttribute>() == null
                     && t.GetCustomAttribute<CbonUnionItemAttribute>() == null) throw new DeserializeError("This type cannot be deserialized");
-                if (t.IsAbstract) throw new DeserializeError("Cannot deserialize abstract class");
-                if (t.IsInterface) throw new DeserializeError("Cannot deserialize interface");
+                if (t.GetCustomAttribute<CbonUnionAttribute>() == null)
+                {
+                    if (t.IsAbstract) throw new DeserializeError("Cannot deserialize abstract class");
+                    if (t.IsInterface) throw new DeserializeError("Cannot deserialize interface");
+                }
                 if (t.IsCOMObject) throw new DeserializeError("Cannot deserialize COM object");
                 if (t.IsPointer) throw new DeserializeError("Cannot deserialize pointer");
+                CheckDeTypeTemp.Add(t, t);
                 return t;
             }
 
             public static List<T> ArrDe<T>(Type t, List<CbAst> ast) => ast.Count == 0 ? new List<T>() : (from v in ast select ItemDe<T>(t, v)).ToList();
             public static T ItemDe<T>(Type t, CbAst ast) => (T)ItemDe(t, ast);
-            public static object ItemDe(Type t, CbAst ast) => t.IsPrimitive ? DePrimitive(t, ast) : t.IsAssignableFrom(typeof(string)) ? DeStr(t, ast) : ast switch
+            public static object ItemDe(Type t, CbAst ast) => t.IsPrimitive ? DePrimitive(t, ast) : t.IsEnum ? DeEnum(t, ast) : t.IsAssignableFrom(typeof(string)) ? DeStr(t, ast) : ast switch
             {
                 CbAst.Obj { Item: var v } => DeObj(t, v),
                 CbAst.Arr { Item: var v } => DeArr(t, v),
-                CbAst.Union _ => throw new NotImplementedException("todo"),
+                CbAst.Union { Item: AUnion { tag: var tag, value: var val } } => DeUnion(t, tag, val),
                 var a when a.IsNull => null,
                 _ => DePrimitive(t, ast),
             };
@@ -221,7 +230,91 @@ namespace CbStyles.Cbon
                 return obj;
             }
 
+            public static object DeEnum(Type t, CbAst ast)
+            {
+                var cb = t.GetCustomAttribute<CbonAttribute>() ?? CbonAttribute.Default;
+                if (cb.Union || t.GetCustomAttribute<CbonUnionAttribute>() != null)
+                {
+                    (var name, var go) = ast switch
+                    {
+                        CbAst.Str { Item: var v } => (v, false),
+                        var a when a.IsBool => throw new DeserializeTypeError("bool", t.FullName),
+                        var a when a.IsNull => throw new DeserializeTypeError("null", t.FullName),
+                        var a when a.IsArr => throw new DeserializeTypeError("array", t.FullName),
+                        var a when a.IsObj => throw new DeserializeTypeError("object", t.FullName),
+                        var a when a.IsUnion => throw new DeserializeTypeError("union", t.FullName),
+                        _ => (null, true)
+                    };
+                    if (go) goto numenum;
+                    var variant = t.GetFields(BindingFlags.Public | BindingFlags.Static).FirstOrDefault(m => m.DeclaringType == t && m.GetCustomAttribute<CbonAttribute>()?.Name == name);
+                    if (variant != null) return variant.GetValue(null);
+                    return Enum.Parse(t, name, true);
+                }
+            numenum:
+                var it = Enum.GetUnderlyingType(t);
+                var o = ast switch
+                {
+                    CbAst.Num { Item: var v } => t switch
+                    {
+                        var _ when it.IsAssignableFrom(typeof(sbyte)) => Enum.ToObject(t, v.I8()),
+                        var _ when it.IsAssignableFrom(typeof(short)) => Enum.ToObject(t, v.I16()),
+                        var _ when it.IsAssignableFrom(typeof(int)) => Enum.ToObject(t, v.I32()),
+                        var _ when it.IsAssignableFrom(typeof(long)) => Enum.ToObject(t, v.I64()),
+                        var _ when it.IsAssignableFrom(typeof(byte)) => Enum.ToObject(t, v.U8()),
+                        var _ when it.IsAssignableFrom(typeof(ushort)) => Enum.ToObject(t, v.U16()),
+                        var _ when it.IsAssignableFrom(typeof(uint)) => Enum.ToObject(t, v.U32()),
+                        var _ when it.IsAssignableFrom(typeof(ulong)) => Enum.ToObject(t, v.U64()),
+                        _ => throw new DeserializeTypeError("number", t.FullName),
+                    },
+                    CbAst.Hex { Item: var v } => t switch
+                    {
+                        var _ when it.IsAssignableFrom(typeof(sbyte)) => Enum.ToObject(t, v.I8()),
+                        var _ when it.IsAssignableFrom(typeof(short)) => Enum.ToObject(t, v.I16()),
+                        var _ when it.IsAssignableFrom(typeof(int)) => Enum.ToObject(t, v.I32()),
+                        var _ when it.IsAssignableFrom(typeof(long)) => Enum.ToObject(t, v.I64()),
+                        var _ when it.IsAssignableFrom(typeof(byte)) => Enum.ToObject(t, v.U8()),
+                        var _ when it.IsAssignableFrom(typeof(ushort)) => Enum.ToObject(t, v.U16()),
+                        var _ when it.IsAssignableFrom(typeof(uint)) => Enum.ToObject(t, v.U32()),
+                        var _ when it.IsAssignableFrom(typeof(ulong)) => Enum.ToObject(t, v.U64()),
+                        _ => throw new DeserializeTypeError("integer", t.FullName),
+                    },
+                    var a when a.IsStr => throw new DeserializeTypeError("string", t.FullName),
+                    var a when a.IsBool => throw new DeserializeTypeError("bool", t.FullName),
+                    var a when a.IsNull => throw new DeserializeTypeError("null", t.FullName),
+                    var a when a.IsArr => throw new DeserializeTypeError("array", t.FullName),
+                    var a when a.IsObj => throw new DeserializeTypeError("object", t.FullName),
+                    var a when a.IsUnion => throw new DeserializeTypeError("union", t.FullName),
+                    _ => throw new NotImplementedException("never"),
+                };
+                return o;
+            }
+
+            public static object DeUnion(Type t, string tag, CbAst ast)
+            {
+                if (t.IsAbstract || t.IsInterface) return DeUnionClass(t, tag, ast);
+                throw new DeserializeTypeError("union", t.FullName);
+            }
+
+            public static object DeUnionClass(Type t, string tag, CbAst ast)
+            {
+                var cbu = t.GetCustomAttribute<CbonUnionAttribute>();
+                if (cbu == null) throw new DeserializeError($"Cannot deserialize <union> to => {t.FullName} , the target not have <{typeof(CbonUnionAttribute).FullName}>");
+                var variants = cbu.CheckItems(t);
+                Type? getVariant()
+                {
+                    foreach (var variant in variants)
+                    {
+                        if (variant.Key == tag) return variant.Value;
+                    }
+                    return null;
+                }
+                var variant = getVariant();
+                if (variant == null) throw new DeserializeError($"<{t.FullName}> does not have a variant with tag {Se.SeStrQuot(tag)}");
+                if (!t.IsAssignableFrom(variant)) throw new DeserializeError($"the variant <{variant.FullName}> not assignable to the union <{t.FullName}>");
+                CheckDeType(variant);
+                return ItemDe(variant, ast);
+            }
+
         }
     }
-    
 }

@@ -121,6 +121,9 @@ namespace TestSerializer
 
         public UTestA1() { }
         public UTestA1(int a) => this.a = a;
+
+        public override bool Equals(object obj) => obj is UTestA1 a && this.a == a.a;
+        public override string ToString() => $"{{ a: {a} }}";
     }
 
     [CbonUnionItem("str")]
@@ -130,6 +133,9 @@ namespace TestSerializer
 
         public UTestB1() { }
         public UTestB1(string a) => this.a = a;
+
+        public override bool Equals(object obj) => obj is UTestB1 a && this.a == a.a;
+        public override string ToString() => $"{{ a: {a} }}";
     }
 
     [CbonUnionItem("n")]
@@ -143,6 +149,9 @@ namespace TestSerializer
 
         public UTestCUA1() { }
         public UTestCUA1(int a) => this.a = a;
+
+        public override bool Equals(object obj) => obj is UTestCUA1 a && this.a == a.a;
+        public override string ToString() => $"{{ a: {a} }}";
     }
 
 }

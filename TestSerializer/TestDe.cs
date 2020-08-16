@@ -104,7 +104,69 @@ namespace TestSerializer
             Console.WriteLine(r);
             Assert.AreEqual(new OTest4(3, true, null), r);
         }
+
+        [Test]
+        public void TestDe11()
+        {
+            var code = "2";
+            var r = SeDe.DoDe<ETest1>(code);
+            Console.WriteLine(r);
+            Assert.AreEqual(ETest1.C, r);
+        }
+
+        [Test]
+        public void TestDe12()
+        {
+            var code = "C";
+            var r = SeDe.DoDe<ETest2>(code);
+            Console.WriteLine(r);
+            Assert.AreEqual(ETest2.C, r);
+        }
+
+        [Test]
+        public void TestDe13()
+        {
+            var code = "C";
+            var r = SeDe.DoDe<ETest3>(code);
+            Console.WriteLine(r);
+            Assert.AreEqual(ETest3.C, r);
+        }
+
+        [Test]
+        public void TestDe14()
+        {
+            var code = "three";
+            var r = SeDe.DoDe<ETest4>(code);
+            Console.WriteLine(r);
+            Assert.AreEqual(ETest4.C, r);
+        }
+
+        [Test]
+        public void TestDe15()
+        {
+            var code = "(UTestA1){a 3}";
+            var r = SeDe.DoDe<UTest1>(code);
+            Console.WriteLine(r);
+            Assert.AreEqual(new UTestA1(3), r);
+        }
+
+        [Test]
+        public void TestDe16()
+        {
+            var code = "(str){a '123'}";
+            var r = SeDe.DoDe<UTest1>(code);
+            Console.WriteLine(r);
+            Assert.AreEqual(new UTestB1("123"), r);
+        }
+
+        [Test]
+        public void TestDe17()
+        {
+            var code = "(n)(u){a 3}";
+            var r = SeDe.DoDe<UTest1>(code);
+            Console.WriteLine(r);
+            Assert.AreEqual(new UTestCUA1(3), r);
+        }
     }
 
-    
 }

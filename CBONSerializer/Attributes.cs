@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Text;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace CbStyles.Cbon
 {
@@ -134,8 +135,11 @@ namespace CbStyles.Cbon
         /// </summary>
         public Type[] Items { get; set; } = Type.EmptyTypes;
 
+        private static readonly ConditionalWeakTable<Type, Dictionary<string, Type>> CheckItemsTemp = new ConditionalWeakTable<Type, Dictionary<string, Type>>();
+
         internal Dictionary<string, Type> CheckItems(Type self)
         {
+            if (CheckItemsTemp.TryGetValue(self, out var tmp)) return tmp;
             if (Items.Length == 0) throw new CbonUnionError($"Union cannot have 0 variants on <{self.FullName}>");
             var names = new Dictionary<string, Type>();
             var types = new HashSet<string>();
@@ -149,9 +153,11 @@ namespace CbStyles.Cbon
                 if (sameType) throw new CbonUnionError($"union cannot have 2 same variants on <{self.FullName}> of <{fullname}>");
                 var sameName = names.GetValueOrDefault(itemName);
                 if (sameName != null) throw new CbonUnionError($"The union variant <{fullname}> has the same tag name as <{sameName.FullName}> on <{self.FullName}>");
+                if (!self.IsAssignableFrom(item)) throw new CbonUnionError($"the variant <{item.FullName}> not assignable to the union <{self.FullName}>");
                 types.Add(itemName);
                 names.Add(itemName, item);
             }
+            CheckItemsTemp.Add(self, names);
             return names;
         }
 

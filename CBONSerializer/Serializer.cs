@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -36,8 +37,10 @@ namespace CbStyles.Cbon
                 public string Tab => new string(' ', tab);
             }
 
+            static readonly ConditionalWeakTable<Type, Type> CheckSeTypeTemp = new ConditionalWeakTable<Type, Type>();
             public static Type CheckSeType(Type t)
             {
+                if(CheckSeTypeTemp.TryGetValue(t, out var _)) return t;
                 if (!t.IsSerializable 
                     && t.GetCustomAttribute<CbonAttribute>() == null 
                     && t.GetCustomAttribute<CbonUnionAttribute>() == null 
@@ -49,6 +52,7 @@ namespace CbStyles.Cbon
                 }
                 if (t.IsCOMObject) throw new SerializeError("Cannot serialize COM object");
                 if (t.IsPointer) throw new SerializeError("Cannot serialize pointer");
+                CheckSeTypeTemp.Add(t, t);
                 return t;
             }
 
@@ -181,8 +185,8 @@ namespace CbStyles.Cbon
                 if(cb.Union || t.GetCustomAttribute<CbonUnionAttribute>() != null)
                 {
                     var raw_name = Enum.GetName(t, o);
-                    var variant = t.GetMember(raw_name).FirstOrDefault(m => m.DeclaringType == t);
-                    var name = variant.GetCustomAttribute<CbonAttribute>()?.Name ?? raw_name;
+                    var variant = t.GetField(raw_name, BindingFlags.Public | BindingFlags.Static);
+                    var name = variant?.GetCustomAttribute<CbonAttribute>()?.Name ?? raw_name;
                     return SeStr(name);
                 }
                 return Convert.ChangeType(o, ((Enum)o).GetTypeCode()).ToString();
@@ -208,13 +212,14 @@ namespace CbStyles.Cbon
                     return null;
                 }
                 var variant = getVariant();
-                if(variant == null) throw new SerializeError($"Value is not variant of <{t.FullName}>");
+                if(variant == null) throw new SerializeError($"<{ot.FullName}> is not variant of <{t.FullName}>");
                 (string vn, Type vt) = variant.Value;
                 CheckSeType(vt);
                 var val = ItemSe(vt, o, ctx);
                 var tag = SeKey(vn);
                 return $"({tag}){val}";
             }
+
         }
     }
 }

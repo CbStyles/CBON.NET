@@ -41,17 +41,13 @@ namespace CbStyles.Cbon
 
             public static List<T> ArrDe<T>(Type t, List<CbAst> ast) => ast.Count == 0 ? new List<T>() : (from v in ast select ItemDe<T>(t, v)).ToList();
             public static T ItemDe<T>(Type t, CbAst ast) => (T)ItemDe(t, ast);
-            public static object ItemDe(Type t, CbAst ast) => t.IsPrimitive ? DePrimitive(t, ast) : typeof(string).IsAssignableFrom(t) ? DeStr(t, ast) : ast switch
+            public static object ItemDe(Type t, CbAst ast) => t.IsPrimitive ? DePrimitive(t, ast) : t.IsAssignableFrom(typeof(string)) ? DeStr(t, ast) : ast switch
             {
                 CbAst.Obj { Item: var v } => DeObj(t, v),
                 CbAst.Arr { Item: var v } => DeArr(t, v),
                 CbAst.Union _ => throw new NotImplementedException("todo"),
                 var a when a.IsNull => null,
-                var a when a.IsStr => throw new DeserializeTypeError("string", t.FullName),
-                var a when a.IsNum => throw new DeserializeTypeError("number", t.FullName),
-                var a when a.IsHex => throw new DeserializeTypeError("integer", t.FullName),
-                var a when a.IsBool => throw new DeserializeTypeError("bool", t.FullName),
-                _ => throw new NotImplementedException("never"),
+                _ => DePrimitive(t, ast),
             };
 
             public static object DeStr(Type t, CbAst ast) => ast switch
@@ -62,27 +58,28 @@ namespace CbStyles.Cbon
                 CbAst.Hex { Item: var v } => v.raw,
                 var a when a.IsNull => null,
                 var a when a.IsArr => throw new DeserializeTypeError("array", t.FullName),
-                var a when a.IsObj => throw new DeserializeTypeError("array", t.FullName),
+                var a when a.IsObj => throw new DeserializeTypeError("object", t.FullName),
+                var a when a.IsUnion => throw new DeserializeTypeError("union", t.FullName),
                 _ => throw new NotImplementedException("never"),
             };
 
             public static object DePrimitive(Type t, CbAst ast) => ast switch
             {
-                CbAst.Bool { Item: var v } => typeof(bool).IsAssignableFrom(t) ? v : throw new DeserializeTypeError("bool", t.FullName),
+                CbAst.Bool { Item: var v } => t.IsAssignableFrom(typeof(bool)) ? v : throw new DeserializeTypeError("bool", t.FullName),
                 CbAst.Num { Item: var v } => t switch
                 {
-                    var _ when typeof(sbyte).IsAssignableFrom(t) => v.I8(),
-                    var _ when typeof(short).IsAssignableFrom(t) => v.I16(),
-                    var _ when typeof(int).IsAssignableFrom(t) => v.I32(),
-                    var _ when typeof(long).IsAssignableFrom(t) => v.I64(),
-                    var _ when typeof(byte).IsAssignableFrom(t) => v.U8(),
-                    var _ when typeof(ushort).IsAssignableFrom(t) => v.U16(),
-                    var _ when typeof(uint).IsAssignableFrom(t) => v.U32(),
-                    var _ when typeof(ulong).IsAssignableFrom(t) => v.U64(),
-                    var _ when typeof(float).IsAssignableFrom(t) => v.F32(),
-                    var _ when typeof(double).IsAssignableFrom(t) => v.F64(),
-                    var _ when typeof(decimal).IsAssignableFrom(t) => v.F128(),
-                    var _ when typeof(bool).IsAssignableFrom(t) => v.F128() switch
+                    var _ when t.IsAssignableFrom(typeof(sbyte)) => v.I8(),
+                    var _ when t.IsAssignableFrom(typeof(short)) => v.I16(),
+                    var _ when t.IsAssignableFrom(typeof(int)) => v.I32(),
+                    var _ when t.IsAssignableFrom(typeof(long)) => v.I64(),
+                    var _ when t.IsAssignableFrom(typeof(byte)) => v.U8(),
+                    var _ when t.IsAssignableFrom(typeof(ushort)) => v.U16(),
+                    var _ when t.IsAssignableFrom(typeof(uint)) => v.U32(),
+                    var _ when t.IsAssignableFrom(typeof(ulong)) => v.U64(),
+                    var _ when t.IsAssignableFrom(typeof(float)) => v.F32(),
+                    var _ when t.IsAssignableFrom(typeof(double)) => v.F64(),
+                    var _ when t.IsAssignableFrom(typeof(decimal)) => v.F128(),
+                    var _ when t.IsAssignableFrom(typeof(bool)) => v.F128() switch
                     {
                         1 => true,
                         0 => false,
@@ -92,18 +89,18 @@ namespace CbStyles.Cbon
                 },
                 CbAst.Hex { Item: var v } => t switch
                 {
-                    var _ when typeof(sbyte).IsAssignableFrom(t) => v.I8(),
-                    var _ when typeof(short).IsAssignableFrom(t) => v.I16(),
-                    var _ when typeof(int).IsAssignableFrom(t) => v.I32(),
-                    var _ when typeof(long).IsAssignableFrom(t) => v.I64(),
-                    var _ when typeof(byte).IsAssignableFrom(t) => v.U8(),
-                    var _ when typeof(ushort).IsAssignableFrom(t) => v.U16(),
-                    var _ when typeof(uint).IsAssignableFrom(t) => v.U32(),
-                    var _ when typeof(ulong).IsAssignableFrom(t) => v.U64(),
-                    var _ when typeof(float).IsAssignableFrom(t) => (float)v.I32(),
-                    var _ when typeof(double).IsAssignableFrom(t) => (double)v.I64(),
-                    var _ when typeof(decimal).IsAssignableFrom(t) => (decimal)v.U64(),
-                    var _ when typeof(bool).IsAssignableFrom(t) => v.U64() switch
+                    var _ when t.IsAssignableFrom(typeof(sbyte)) => v.I8(),
+                    var _ when t.IsAssignableFrom(typeof(short)) => v.I16(),
+                    var _ when t.IsAssignableFrom(typeof(int)) => v.I32(),
+                    var _ when t.IsAssignableFrom(typeof(long)) => v.I64(),
+                    var _ when t.IsAssignableFrom(typeof(byte)) => v.U8(),
+                    var _ when t.IsAssignableFrom(typeof(ushort)) => v.U16(),
+                    var _ when t.IsAssignableFrom(typeof(uint)) => v.U32(),
+                    var _ when t.IsAssignableFrom(typeof(ulong)) => v.U64(),
+                    var _ when t.IsAssignableFrom(typeof(float)) => (float)v.I32(),
+                    var _ when t.IsAssignableFrom(typeof(double)) => (double)v.I64(),
+                    var _ when t.IsAssignableFrom(typeof(decimal)) => (decimal)v.U64(),
+                    var _ when t.IsAssignableFrom(typeof(bool)) => v.U64() switch
                     {
                         1 => true,
                         0 => false,
@@ -111,10 +108,11 @@ namespace CbStyles.Cbon
                     },
                     _ => throw new DeserializeTypeError("integer", t.FullName),
                 },
-                CbAst.Str { Item: var v } => typeof(char).IsAssignableFrom(t) && v.Length == 1 ? v[0] : throw new DeserializeTypeError("string", t.FullName),
+                CbAst.Str { Item: var v } => t.IsAssignableFrom(typeof(char)) && v.Length == 1 ? v[0] : throw new DeserializeTypeError("string", t.FullName),
                 var a when a.IsNull => throw new DeserializeTypeError("null", t.FullName),
                 var a when a.IsArr => throw new DeserializeTypeError("array", t.FullName),
                 var a when a.IsObj => throw new DeserializeTypeError("object", t.FullName),
+                var a when a.IsUnion => throw new DeserializeTypeError("union", t.FullName),
                 _ => throw new NotImplementedException("never"),
             };
 
@@ -176,13 +174,25 @@ namespace CbStyles.Cbon
             public static readonly Type ic = typeof(ICollection<>);
             public static object DeArr(Type t, List<CbAst> asts)
             {
+                if(t.IsArray)
+                {
+                    var et = CheckDeType(t.GetElementType());
+                    var arr = Array.CreateInstance(et, asts.Count);
+                    foreach ((var ast, var i) in asts.Select((v, i) => (v, i)))
+                    {
+                        var v = ItemDe(et, ast);
+                        arr.SetValue(v, i);
+                    }
+                    return arr;
+                }
+
                 var ifs = t.GetInterfaces();
                 var ics = (from i in ifs where i.IsGenericType && i.GetGenericTypeDefinition() == ic select i).ToList();
                 if (ics.Count == 0) throw new DeserializeError($"Deserialize <array> need target <{t.FullName}> implement <{ic.FullName}>");
                 foreach (var ic in ics) CheckDeType(ic.GetGenericArguments()[0]);
 
                 var constructor = t.GetConstructor(ConstructorFlags, null, Type.EmptyTypes, null);
-                var arr = constructor != null ? constructor.Invoke(Array.Empty<object>()) : t.GetConstructors(ConstructorFlags).Length == 0 ?
+                var obj = constructor != null ? constructor.Invoke(Array.Empty<object>()) : t.GetConstructors(ConstructorFlags).Length == 0 ?
                     FormatterServices.GetUninitializedObject(t) : throw new DeserializeError($"Cannot construct this type : {t.FullName}");
 
                 var errs = new List<DeserializeError>();
@@ -196,7 +206,7 @@ namespace CbStyles.Cbon
                         {
                             var f = ic.GetMethod("Add", new[] { gt });
                             var v = ItemDe(gt, ast);
-                            f.Invoke(arr, new[] { v });
+                            f.Invoke(obj, new[] { v });
                             goto aloop;
                         } 
                         catch(DeserializeError deErr)
@@ -208,7 +218,7 @@ namespace CbStyles.Cbon
                     aloop:
                     continue;
                 }
-                return arr;
+                return obj;
             }
 
         }

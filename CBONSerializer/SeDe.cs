@@ -26,7 +26,7 @@ namespace CbStyles.Cbon
             return ItemDe<T>(t, ast[0]);
         }
 
-        public static string DoSeArr<T>(IList<T> items)
+        public static string DoSeArr<T>(IEnumerable<T> items)
         {
             var t = CheckSeType(typeof(T));
             return ArrSe(t, items, new SeCtx());

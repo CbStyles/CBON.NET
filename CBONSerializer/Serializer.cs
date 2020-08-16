@@ -67,6 +67,7 @@ namespace CbStyles.Cbon
             public static string ItemSe(Type t, object o, SeCtx ctx)
             {
                 if (o == null) return "null";
+                if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>)) return SeNullable(t, o, ctx);
                 if (t.IsPrimitive) return SePrimitive(t, o);
                 if (typeof(string).IsAssignableFrom(t)) return SeStr(o);
                 if (typeof(IEnumerable).IsAssignableFrom(t)) return SeArr(o, ctx);
@@ -88,25 +89,30 @@ namespace CbStyles.Cbon
                 return $"'{s.Replace("'", "\\'")}'";
             }
 
-            public static string SePrimitive(Type t, object o)
+            public static string SePrimitive(Type t, object o) => o switch
             {
-                return o switch
-                {
-                    bool v => v ? "true" : "false",
-                    byte v => v.ToString(),
-                    ushort v => v.ToString(),
-                    uint v => v.ToString(),
-                    ulong v => v.ToString(),
-                    sbyte v => v.ToString(),
-                    short v => v.ToString(),
-                    int v => v.ToString(),
-                    long v => v.ToString(),
-                    float v => v.ToString(),
-                    double v => v.ToString(),
-                    decimal v => v.ToString(),
-                    char v => v.ToString(),
-                    _ => throw new SerializeTypeError(t.FullName),
-                };
+                bool v => v ? "true" : "false",
+                byte v => v.ToString(),
+                ushort v => v.ToString(),
+                uint v => v.ToString(),
+                ulong v => v.ToString(),
+                sbyte v => v.ToString(),
+                short v => v.ToString(),
+                int v => v.ToString(),
+                long v => v.ToString(),
+                float v => v.ToString(),
+                double v => v.ToString(),
+                decimal v => v.ToString(),
+                char v => v.ToString(),
+                _ => throw new SerializeTypeError(t.FullName),
+            };
+
+            public static string SeNullable(Type t, object o, SeCtx ctx)
+            {
+                if (o == null) return "null";
+                var Value = t.GetProperty("HasValue");
+                var gt = CheckSeType(Nullable.GetUnderlyingType(t));
+                return ItemSe(gt, Value.GetValue(o), ctx);
             }
 
             public static string SeArr(object o, SeCtx ctx)

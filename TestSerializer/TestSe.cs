@@ -144,5 +144,23 @@ namespace TestSerializer
             Console.WriteLine(r);
             Assert.AreEqual("(n)(u){a 3}", r);
         }
+
+        [Test]
+        public void TestSe16()
+        {
+            var obj = true;
+            var r = SeDe.DoSe<bool?>(obj);
+            Console.WriteLine(r);
+            Assert.AreEqual("true", r);
+        }
+
+        [Test]
+        public void TestSe17()
+        {
+            bool? obj = null;
+            var r = SeDe.DoSe(obj);
+            Console.WriteLine(r);
+            Assert.AreEqual("null", r);
+        }
     }
 }

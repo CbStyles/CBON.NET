@@ -44,6 +44,8 @@ namespace TestSerializer
         [CbonIgnore]
         public int e = 0;
 
+        public OTest3() { }
+
         public OTest3(int a, bool b, string c)
         {
             this.a = a;
@@ -68,6 +70,8 @@ namespace TestSerializer
         public int d = 0;
         public int e = 0;
 
+        public OTest4() { }
+
         public OTest4(int a, bool b, string? c)
         {
             this.a = a;
@@ -75,7 +79,7 @@ namespace TestSerializer
             this.c = c;
         }
 
-        public override bool Equals(object obj) => obj is OTest3 test && a == test.a && b == test.b && c == test.c && d == test.d && e == test.e;
+        public override bool Equals(object obj) => obj is OTest4 test && a == test.a && b == test.b && c == test.c && d == test.d && e == test.e;
 
         public override string ToString() => $"{{ a: {a}, b: {b}, c: {c}, d: {d}, e: {e} }}";
     }

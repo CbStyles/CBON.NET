@@ -37,5 +37,10 @@ namespace CbStyles.Cbon
             var t = CheckSeType(typeof(T));
             return ItemSe(t, value, new SeCtx());
         }
+
+        internal class DeCbVal
+        {
+
+        }
     }
 }

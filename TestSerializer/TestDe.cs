@@ -167,6 +167,25 @@ namespace TestSerializer
             Console.WriteLine(r);
             Assert.AreEqual(new UTestCUA1(3), r);
         }
+
+        [Test]
+        public void TestDe18()
+        {
+            var code = "1 2 3";
+            var r = SeDe.DoDeArr<int>(code);
+            Console.WriteLine(CbAst.ArrToString<List<int>, int>(r));
+            Assert.AreEqual(new[] { 1, 2, 3 }.ToList(), r);
+        }
+
+        [Test]
+        public void TestDe19()
+        {
+            var code = "{1 3 2 2 3 1}";
+            var r = SeDe.DoDe<Dictionary<int, int>>(code);
+            Console.WriteLine(CbAst.ObjToString<Dictionary<int, int>, int, int>(r));
+            var obj = new Dictionary<int, int> { { 1, 3 }, { 2, 2 }, { 3, 1 } };
+            Assert.AreEqual(obj, r);
+        }
     }
 
 }

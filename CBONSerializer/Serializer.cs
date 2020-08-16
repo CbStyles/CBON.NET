@@ -72,6 +72,7 @@ namespace CbStyles.Cbon
             {
                 if (o == null) return "null";
                 if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>)) return SeNullable(t, o, ctx);
+                if (t.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>)) != null) return SeMap(t, o, ctx);
                 if (t.IsPrimitive) return SePrimitive(t, o);
                 if (typeof(string).IsAssignableFrom(t)) return SeStr(o);
                 if (typeof(IEnumerable).IsAssignableFrom(t)) return SeArr(o, ctx);
@@ -177,6 +178,37 @@ namespace CbStyles.Cbon
             {
                 if (s.Length == 0 || not_word_reg.IsMatch(s)) return SeStrQuot(s);
                 return s;
+            }
+
+            public static string SeMap(Type t, object o, SeCtx ctx)
+            {
+                var ids = t.GetInterfaces().Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+                IEnumerable<string> r()
+                {
+                    foreach (var i in ids)
+                    {
+                        var Keys = i.GetProperty("Keys");
+                        var TryGetValue = i.GetMethod("TryGetValue");
+                        IEnumerable<string> f()
+                        {
+                            var keys = (IEnumerable)Keys.GetValue(o);
+                            foreach (var k in keys)
+                            {
+                                var key = SeKey(k.ToString());
+                                var ps = new object?[] { k, null };
+                                var has = (bool)TryGetValue.Invoke(o, ps);
+                                if (!has) continue;
+                                var v = ps[1]!;
+                                var t = v.GetType();
+                                CheckSeType(t);
+                                var val = ItemSe(t, v, ctx);
+                                yield return $"{key} {val}";
+                            }
+                        }
+                        yield return string.Join(" ", f());
+                    }
+                }
+                return $"{{{string.Join(" ", r())}}}";
             }
 
             public static string SeEnum(Type t, object o)

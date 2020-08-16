@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.CompilerServices;
+using System.Globalization;
 
 namespace CbStyles.Cbon
 {
@@ -129,10 +130,13 @@ namespace CbStyles.Cbon
 
             public static object DeObj(Type t, Dictionary<string, CbAst> ast)
             {
+                if (t.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>)) != null) return DeMap(t, ast);
+
                 var cb = t.GetCustomAttribute<CbonAttribute>() ?? CbonAttribute.Default;
                 var constructor = t.GetConstructor(ConstructorFlags, null, Type.EmptyTypes, null);
                 var obj = constructor != null ? constructor.Invoke(Array.Empty<object>()) : t.GetConstructors(ConstructorFlags).Length == 0 ? 
                     FormatterServices.GetUninitializedObject(t) : throw new DeserializeError($"Cannot construct this type : {t.FullName}");
+
                 if (cb.Member == 0) return obj;
 
                 if (cb.Member.HasFlag(CbonMember.Fields))
@@ -185,6 +189,7 @@ namespace CbStyles.Cbon
             {
                 if(t.IsArray)
                 {
+                    if (t.GetArrayRank() > 1) throw new DeserializeError("Not support multidimensional arrays");
                     var et = CheckDeType(t.GetElementType());
                     var arr = Array.CreateInstance(et, asts.Count);
                     foreach ((var ast, var i) in asts.Select((v, i) => (v, i)))
@@ -193,12 +198,28 @@ namespace CbStyles.Cbon
                         arr.SetValue(v, i);
                     }
                     return arr;
+                } 
+                else if(t.IsGenericType)
+                {
+                    var tgd = t.GetGenericTypeDefinition();
+                    if (tgd == typeof(List<>))
+                    {
+                        var et = CheckDeType(t.GetGenericArguments()[0]);
+                        var listctor = t.GetConstructor(ConstructorFlags, null, new[] { typeof(int) }, null);
+                        var list = listctor.Invoke(new object[] { asts.Count });
+                        var add = t.GetMethod("Add");
+                        foreach (var ast in asts)
+                        {
+                            var v = ItemDe(et, ast);
+                            add.Invoke(list, new object[] { v });
+                        }
+                        return list;
+                    }
                 }
 
                 var ifs = t.GetInterfaces();
-                var ics = (from i in ifs where i.IsGenericType && i.GetGenericTypeDefinition() == ic select i).ToList();
-                if (ics.Count == 0) throw new DeserializeError($"Deserialize <array> need target <{t.FullName}> implement <{ic.FullName}>");
-                foreach (var ic in ics) CheckDeType(ic.GetGenericArguments()[0]);
+                var ics = (from i in ifs where i.IsGenericType && i.GetGenericTypeDefinition() == ic select i).ToArray();
+                if (ics.Length == 0) throw new DeserializeError($"Deserialize <array> need target <{t.FullName}> implement <{ic.FullName}>");
 
                 var constructor = t.GetConstructor(ConstructorFlags, null, Type.EmptyTypes, null);
                 var obj = constructor != null ? constructor.Invoke(Array.Empty<object>()) : t.GetConstructors(ConstructorFlags).Length == 0 ?
@@ -210,7 +231,7 @@ namespace CbStyles.Cbon
                     
                     foreach (var ic in ics)
                     {
-                        var gt = ic.GetGenericArguments()[0];
+                        var gt = CheckDeType(ic.GetGenericArguments()[0]);
                         try
                         {
                             var f = ic.GetMethod("Add", new[] { gt });
@@ -225,9 +246,69 @@ namespace CbStyles.Cbon
                     }
                     if(errs.Count > 0) throw new DeserializeError("Multiple error", new AggregateException(errs));
                     aloop:
+                    errs.Clear();
                     continue;
                 }
                 return obj;
+            }
+
+            public static readonly Type id = typeof(IDictionary<,>);
+            public static object DeMap(Type t, Dictionary<string, CbAst> asts)
+            {
+                var ids = t.GetInterfaces().Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>)).ToArray();
+                if (ids.Length == 0) throw new DeserializeError($"Deserialize <map> need target <{t.FullName}> implement <{id.FullName}>");
+
+                var constructor = t.GetConstructor(ConstructorFlags, null, Type.EmptyTypes, null);
+                var obj = constructor != null ? constructor.Invoke(Array.Empty<object>()) : t.GetConstructors(ConstructorFlags).Length == 0 ?
+                    FormatterServices.GetUninitializedObject(t) : throw new DeserializeError($"Cannot construct this type : {t.FullName}");
+
+                var errs = new List<DeserializeError>();
+                foreach (var (k, ast) in asts)
+                {
+                    foreach (var id in ids)
+                    {
+                        var kt = id.GetGenericArguments()[0];
+                        var et = CheckDeType(id.GetGenericArguments()[1]);
+                        try
+                        {
+                            var key = DeKey(kt, k);
+                            var f = id.GetMethod("Add", new[] { kt, et });
+                            var v = ItemDe(et, ast);
+                            f.Invoke(obj, new[] { key, v });
+                            goto aloop;
+                        }
+                        catch (DeserializeError deErr)
+                        {
+                            errs.Add(deErr);
+                        }
+                    }
+                    if (errs.Count > 0) throw new DeserializeError("Multiple error", new AggregateException(errs));
+                    aloop:
+                    errs.Clear();
+                    continue;
+                }
+
+                return obj;
+            }
+
+            public static object DeKey(Type t, string o)
+            {
+                if (t.IsAssignableFrom(typeof(string))) return o;
+                if (o == "null") return null;
+                if (t.IsAssignableFrom(typeof(bool))) return bool.Parse(o);
+                if (t.IsAssignableFrom(typeof(sbyte))) return sbyte.Parse(o, NumberStyles.Any, null);
+                if (t.IsAssignableFrom(typeof(short))) return short.Parse(o, NumberStyles.Any, null);
+                if (t.IsAssignableFrom(typeof(int))) return int.Parse(o, NumberStyles.Any, null);
+                if (t.IsAssignableFrom(typeof(long))) return long.Parse(o, NumberStyles.Any, null);
+                if (t.IsAssignableFrom(typeof(byte))) return byte.Parse(o, NumberStyles.Any, null);
+                if (t.IsAssignableFrom(typeof(ushort))) return ushort.Parse(o, NumberStyles.Any, null);
+                if (t.IsAssignableFrom(typeof(uint))) return uint.Parse(o, NumberStyles.Any, null);
+                if (t.IsAssignableFrom(typeof(ulong))) return ulong.Parse(o, NumberStyles.Any, null);
+                if (t.IsAssignableFrom(typeof(float))) return float.Parse(o, NumberStyles.Any, null);
+                if (t.IsAssignableFrom(typeof(double))) return double.Parse(o, NumberStyles.Any, null);
+                if (t.IsAssignableFrom(typeof(decimal))) return decimal.Parse(o, NumberStyles.Any, null);
+                if (t.IsAssignableFrom(typeof(char)) && o.Length == 1) return o[0];
+                throw new DeserializeTypeError("key", t.FullName);
             }
 
             public static object DeEnum(Type t, CbAst ast)

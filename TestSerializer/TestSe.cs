@@ -1,6 +1,7 @@
 ﻿using CbStyles.Cbon;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 
 namespace TestSerializer
 {
@@ -161,6 +162,15 @@ namespace TestSerializer
             var r = SeDe.DoSe(obj);
             Console.WriteLine(r);
             Assert.AreEqual("null", r);
+        }
+
+        [Test]
+        public void TestSe18()
+        {
+            var obj = new Dictionary<int, int> { { 1, 3 }, { 2, 2 }, { 3, 1 } };
+            var r = SeDe.DoSe(obj);
+            Console.WriteLine(r);
+            Assert.AreEqual("{1 3 2 2 3 1}", r);
         }
     }
 }

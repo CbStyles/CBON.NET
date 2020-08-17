@@ -25,14 +25,23 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="CbParser" Version="1.0.0" />
     <PackageReference Include="FSharp.Core" Version="4.7.2" />
-    <PackageReference Include="ILRepack" Version="2.0.18" />
-    <PackageReference Include="ILRepack.MSBuild.Task" Version="2.0.13" />
+    <PackageReference Include="ILRepack" Version="2.0.18">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="ILRepack.MSBuild.Task" Version="2.0.13">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CBONParser\CBONParser.fsproj" />
-    <ProjectReference Include="..\CBONSerializer\CBONSerializer.csproj" />
+    <ProjectReference Include="..\CBONParser\CBONParser.fsproj">
+      <PrivateAssets>all</PrivateAssets>
+    </ProjectReference>
+    <ProjectReference Include="..\CBONSerializer\CBONSerializer.csproj">
+      <PrivateAssets>all</PrivateAssets>
+    </ProjectReference>
   </ItemGroup>
 
   <Target Name="ILRepack" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">

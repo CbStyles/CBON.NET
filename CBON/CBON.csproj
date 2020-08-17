@@ -49,7 +49,7 @@
       <WorkingDirectory>$(MSBuildThisFileDirectory)bin\$(Configuration)\$(TargetFramework)</WorkingDirectory>
     </PropertyGroup>
     <ItemGroup>
-      <InputAssemblies Include="Cbon.dll" />
+      <InputAssemblies Include="CBON.dll" />
       <InputAssemblies Include="CBONParser.dll" />
       <InputAssemblies Include="CBONSerializer.dll" />
     </ItemGroup>

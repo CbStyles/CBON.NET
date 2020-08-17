@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>CbStyles.Cbon</RootNamespace>
     <Authors>CbStyles</Authors>
     <Copyright>CbStyles</Copyright>
@@ -11,8 +11,10 @@
     <RepositoryUrl>https://github.com/CbStyles/CBON.NET.git</RepositoryUrl>
     <PackageProjectUrl>https://github.com/CbStyles/CBON.NET</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
-    <Version>0.1.1</Version>
+    <Version>0.2.0</Version>
     <Description>.NET implementation for Common Bracket Object Notation</Description>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <PackageTags>cbon Common Bracket Object Notation</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,8 +25,33 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CbParser" Version="0.3.0" />
     <PackageReference Include="FSharp.Core" Version="4.7.2" />
+    <PackageReference Include="ILRepack" Version="2.0.18" />
+    <PackageReference Include="ILRepack.MSBuild.Task" Version="2.0.13" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CBONParser\CBONParser.fsproj" />
+    <ProjectReference Include="..\CBONSerializer\CBONSerializer.csproj" />
+  </ItemGroup>
+
+  <Target Name="ILRepack" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <WorkingDirectory>$(MSBuildThisFileDirectory)bin\$(Configuration)\$(TargetFramework)</WorkingDirectory>
+    </PropertyGroup>
+    <ItemGroup>
+      <InputAssemblies Include="Cbon.dll" />
+      <InputAssemblies Include="CBONParser.dll" />
+      <InputAssemblies Include="CBONSerializer.dll" />
+    </ItemGroup>
+    <ItemGroup>
+      <!-- Dot not internalize any types inside this assembly -->
+      <InternalizeExcludeAssemblies Include="Cbon.dll" />
+      <InternalizeExcludeAssemblies Include="CBONParser.dll" />
+      <InternalizeExcludeAssemblies Include="CBONSerializer.dll" />
+    </ItemGroup>
+    <Message Text="MERGING: @(InputAssemblies->'%(Filename)') into $(OutputAssembly)" Importance="High" />
+    <ILRepack OutputType="$(OutputType)" MainAssembly="$(AssemblyName).dll" OutputAssembly="$(AssemblyName).dll" InputAssemblies="@(InputAssemblies)" InternalizeExcludeAssemblies="@(InternalizeExcludeAssemblies)" WorkingDirectory="$(WorkingDirectory)" />
+  </Target>
+  
 </Project>

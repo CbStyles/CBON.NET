@@ -151,8 +151,7 @@ namespace CbStyles.Cbon
                 var fullname = item.FullName;
                 var sameType = types.Contains(itemName);
                 if (sameType) throw new CbonUnionError($"union cannot have 2 same variants on <{self.FullName}> of <{fullname}>");
-                var sameName = names.GetValueOrDefault(itemName);
-                if (sameName != null) throw new CbonUnionError($"The union variant <{fullname}> has the same tag name as <{sameName.FullName}> on <{self.FullName}>");
+                if (names.TryGetValue(itemName, out var sameName)) throw new CbonUnionError($"The union variant <{fullname}> has the same tag name as <{sameName.FullName}> on <{self.FullName}>");
                 if (!self.IsAssignableFrom(item)) throw new CbonUnionError($"the variant <{item.FullName}> not assignable to the union <{self.FullName}>");
                 types.Add(itemName);
                 names.Add(itemName, item);

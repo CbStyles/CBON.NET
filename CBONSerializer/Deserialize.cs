@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Text;
 using CbStyles.Cbon.Parser;
@@ -50,8 +51,8 @@ namespace CbStyles.Cbon
             }
 
             public static List<T> ArrDe<T>(Type t, List<CbAst> ast) => ast.Count == 0 ? new List<T>() : (from v in ast select ItemDe<T>(t, v)).ToList();
-            public static T ItemDe<T>(Type t, CbAst ast) => (T)ItemDe(t, ast);
-            public static object ItemDe(Type t, CbAst ast) => t.IsPrimitive ? DePrimitive(t, ast) : t.IsEnum ? DeEnum(t, ast) : t.IsAssignableFrom(typeof(string)) ? DeStr(t, ast) : ast switch
+            public static T ItemDe<T>(Type t, CbAst ast) => (T)ItemDe(t, ast)!;
+            public static object? ItemDe(Type t, CbAst ast) => t.IsPrimitive ? DePrimitive(t, ast) : t.IsEnum ? DeEnum(t, ast) : t.IsAssignableFrom(typeof(string)) ? DeStr(t, ast) : ast switch
             {
                 CbAst.Obj { Item: var v } => DeObj(t, v),
                 CbAst.Arr { Item: var v } => DeArr(t, v),
@@ -60,7 +61,7 @@ namespace CbStyles.Cbon
                 _ => DePrimitive(t, ast),
             };
 
-            public static object DeStr(Type t, CbAst ast) => ast switch
+            public static object? DeStr(Type t, CbAst ast) => ast switch
             {
                 CbAst.Str { Item: var v } => v,
                 CbAst.Bool { Item: var v } => v ? "true" : "false",
@@ -211,7 +212,7 @@ namespace CbStyles.Cbon
                         foreach (var ast in asts)
                         {
                             var v = ItemDe(et, ast);
-                            add.Invoke(list, new object[] { v });
+                            add.Invoke(list, new object?[] { v });
                         }
                         return list;
                     }
@@ -263,8 +264,10 @@ namespace CbStyles.Cbon
                     FormatterServices.GetUninitializedObject(t) : throw new DeserializeError($"Cannot construct this type : {t.FullName}");
 
                 var errs = new List<DeserializeError>();
-                foreach (var (k, ast) in asts)
+                foreach (var kv in asts)
                 {
+                    var k = kv.Key;
+                    var ast = kv.Value;
                     foreach (var id in ids)
                     {
                         var kt = id.GetGenericArguments()[0];
@@ -291,7 +294,7 @@ namespace CbStyles.Cbon
                 return obj;
             }
 
-            public static object DeKey(Type t, string o)
+            public static object? DeKey(Type t, string o)
             {
                 if (t.IsAssignableFrom(typeof(string))) return o;
                 if (o == "null") return null;
@@ -370,13 +373,13 @@ namespace CbStyles.Cbon
                 return o;
             }
 
-            public static object DeUnion(Type t, string tag, CbAst ast)
+            public static object? DeUnion(Type t, string tag, CbAst ast)
             {
                 if (t.IsAbstract || t.IsInterface) return DeUnionClass(t, tag, ast);
                 throw new DeserializeTypeError("union", t.FullName);
             }
 
-            public static object DeUnionClass(Type t, string tag, CbAst ast)
+            public static object? DeUnionClass(Type t, string tag, CbAst ast)
             {
                 var cbu = t.GetCustomAttribute<CbonUnionAttribute>();
                 if (cbu == null) throw new DeserializeError($"Cannot deserialize <union> to => {t.FullName} , the target not have <{typeof(CbonUnionAttribute).FullName}>");

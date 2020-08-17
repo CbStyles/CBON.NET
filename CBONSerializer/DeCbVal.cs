@@ -30,8 +30,10 @@ namespace CbStyles.Cbon
             public static CbVal ObjDe(Dictionary<string, CbAst> asts)
             {
                 var obj = new Dictionary<string, CbVal>();
-                foreach (var (key, ast) in asts)
+                foreach (var kv in asts)
                 {
+                    var key = kv.Key;
+                    var ast = kv.Value;
                     obj.Add(key, ValDe(ast));
                 }
                 return CbVal.NewObj(obj);

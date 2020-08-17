@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{52A48F78
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "TestParser", "TestParser\TestParser.fsproj", "{1F6D1A3C-2AD7-41A6-8F23-32285175882B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestSerializer", "TestSerializer\TestSerializer.csproj", "{F38659F5-B166-499B-A012-56B8D30E320F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestSerializer", "TestSerializer\TestSerializer.csproj", "{F38659F5-B166-499B-A012-56B8D30E320F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

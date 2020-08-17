@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <Authors>CbStyles</Authors>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -15,10 +15,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <OtherFlags></OtherFlags>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="CbParser" Version="0.3.0" />
-  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="Utils.fs" />
@@ -36,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="CbParser" Version="1.0.0" />
     <PackageReference Update="FSharp.Core" Version="4.7.2" />
   </ItemGroup>
 

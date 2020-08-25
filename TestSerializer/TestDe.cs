@@ -186,6 +186,15 @@ namespace TestSerializer
             var obj = new Dictionary<int, int> { { 1, 3 }, { 2, 2 }, { 3, 1 } };
             Assert.AreEqual(obj, r);
         }
+
+        [Test]
+        public void TestDe20()
+        {
+            var code = "'2222-02-02T02:02:02.0020000'";
+            var r = Cbon.DoDe<DateTime>(code);
+            Console.WriteLine(r);
+            Assert.AreEqual(new DateTime(2222, 2, 2, 2, 2, 2, 2), r);
+        }
     }
 
 }

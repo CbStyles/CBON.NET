@@ -71,14 +71,20 @@ namespace CbStyles.Cbon
             public static string ItemSe(Type t, object o, SeCtx ctx)
             {
                 if (o == null) return "null";
-                if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>)) return SeNullable(t, o, ctx);
-                if (t.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>)) != null) return SeMap(t, o, ctx);
+                if (typeof(DateTime).IsAssignableFrom(t)) return SeDate((DateTime)o);
+                if (t.IsGenericType && typeof(Nullable<>).IsAssignableFrom(t.GetGenericTypeDefinition())) return SeNullable(t, o, ctx);
+                if (t.GetInterfaces().FirstOrDefault(i => i.IsGenericType && typeof(IDictionary<,>).IsAssignableFrom(i.GetGenericTypeDefinition())) != null) return SeMap(t, o, ctx);
                 if (t.IsPrimitive) return SePrimitive(t, o);
                 if (typeof(string).IsAssignableFrom(t)) return SeStr(o);
                 if (typeof(IEnumerable).IsAssignableFrom(t)) return SeArr(o, ctx);
                 if (t.IsEnum) return SeEnum(t, o);
                 if (t.GetCustomAttribute<CbonUnionAttribute>() != null) return SeUnion(t, o, ctx);
                 return SeObj(t, o, ctx);
+            }
+
+            public static string SeDate(DateTime dt)
+            {
+                return SeStrQuot(dt.ToString("o"));
             }
 
             static Regex not_word_reg = new Regex(@"[\[\]\{\}\(\)'"":=,;\s]+", RegexOptions.Compiled);

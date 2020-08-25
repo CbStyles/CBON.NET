@@ -172,5 +172,14 @@ namespace TestSerializer
             Console.WriteLine(r);
             Assert.AreEqual("{1 3 2 2 3 1}", r);
         }
+
+        [Test]
+        public void TestSe19()
+        {
+            var obj = new DateTime(2222, 2, 2, 2, 2, 2, 2);
+            var r = Cbon.DoSe(obj);
+            Console.WriteLine(r);
+            Assert.AreEqual("'2222-02-02T02:02:02.0020000'", r);
+        }
     }
 }

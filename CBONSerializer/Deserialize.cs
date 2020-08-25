@@ -52,13 +52,30 @@ namespace CbStyles.Cbon
 
             public static List<T> ArrDe<T>(Type t, List<CbAst> ast) => ast.Count == 0 ? new List<T>() : (from v in ast select ItemDe<T>(t, v)).ToList();
             public static T ItemDe<T>(Type t, CbAst ast) => (T)ItemDe(t, ast)!;
-            public static object? ItemDe(Type t, CbAst ast) => t.IsPrimitive ? DePrimitive(t, ast) : t.IsEnum ? DeEnum(t, ast) : t.IsAssignableFrom(typeof(string)) ? DeStr(t, ast) : ast switch
+            public static object? ItemDe(Type t, CbAst ast) => t.IsPrimitive ? DePrimitive(t, ast) 
+                : t.IsEnum ? DeEnum(t, ast)
+                : t.IsAssignableFrom(typeof(DateTime)) ? DeDate(t, ast)
+                : t.IsAssignableFrom(typeof(string)) ? DeStr(t, ast) 
+                : ast switch
             {
                 CbAst.Obj { Item: var v } => DeObj(t, v),
                 CbAst.Arr { Item: var v } => DeArr(t, v),
                 CbAst.Union { Item: AUnion { tag: var tag, value: var val } } => DeUnion(t, tag, val),
                 var a when a.IsNull => null,
                 _ => DePrimitive(t, ast),
+            };
+
+            public static object? DeDate(Type t, CbAst ast) => ast switch
+            {
+                CbAst.Str { Item: var v } => DateTime.ParseExact(v, "o", null),
+                var a when a.IsNull => null,
+                var a when a.IsNum => throw new DeserializeTypeError("number", t.FullName),
+                var a when a.IsHex => throw new DeserializeTypeError("integer", t.FullName),
+                var a when a.IsBool => throw new DeserializeTypeError("bool", t.FullName),
+                var a when a.IsArr => throw new DeserializeTypeError("array", t.FullName),
+                var a when a.IsObj => throw new DeserializeTypeError("object", t.FullName),
+                var a when a.IsUnion => throw new DeserializeTypeError("union", t.FullName),
+                _ => throw new NotImplementedException("never"),
             };
 
             public static object? DeStr(Type t, CbAst ast) => ast switch

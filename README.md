@@ -1,5 +1,5 @@
 # CBON.NET
 
-![.NET Core](https://github.com/CbStyles/CBON.NET/workflows/.NET%20Core/badge.svg)
+![.NET](https://github.com/CbStyles/CBON.NET/workflows/.NET/badge.svg)
 
 .NET implementation for ***Common Bracket Object Notation***

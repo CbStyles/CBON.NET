@@ -1,66 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <RootNamespace>CbStyles.Cbon</RootNamespace>
-    <Authors>CbStyles</Authors>
-    <Copyright>CbStyles</Copyright>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <RepositoryUrl>https://github.com/CbStyles/CBON.NET.git</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/CbStyles/CBON.NET</PackageProjectUrl>
-    <RepositoryType>git</RepositoryType>
-    <Version>0.2.0</Version>
-    <Description>.NET implementation for Common Bracket Object Notation</Description>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <PackageTags>cbon Common Bracket Object Notation</PackageTags>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Include="..\LICENSE">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
-  </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="CbParser" Version="1.0.0" />
-    <PackageReference Include="FSharp.Core" Version="4.7.2" />
-    <PackageReference Include="ILRepack" Version="2.0.18">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="ILRepack.MSBuild.Task" Version="2.0.13">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-  </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\CBONParser\CBONParser.fsproj">
-      <PrivateAssets>all</PrivateAssets>
-    </ProjectReference>
-    <ProjectReference Include="..\CBONSerializer\CBONSerializer.csproj">
-      <PrivateAssets>all</PrivateAssets>
-    </ProjectReference>
-  </ItemGroup>
-
-  <Target Name="ILRepack" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
-    <PropertyGroup>
-      <WorkingDirectory>$(MSBuildThisFileDirectory)bin\$(Configuration)\$(TargetFramework)</WorkingDirectory>
-    </PropertyGroup>
-    <ItemGroup>
-      <InputAssemblies Include="CBON.dll" />
-      <InputAssemblies Include="CBONParser.dll" />
-      <InputAssemblies Include="CBONSerializer.dll" />
-    </ItemGroup>
-    <ItemGroup>
-      <!-- Dot not internalize any types inside this assembly -->
-      <InternalizeExcludeAssemblies Include="Cbon.dll" />
-      <InternalizeExcludeAssemblies Include="CBONParser.dll" />
-      <InternalizeExcludeAssemblies Include="CBONSerializer.dll" />
-    </ItemGroup>
-    <Message Text="MERGING: @(InputAssemblies->'%(Filename)') into $(OutputAssembly)" Importance="High" />
-    <ILRepack OutputType="$(OutputType)" MainAssembly="$(AssemblyName).dll" OutputAssembly="$(AssemblyName).dll" InputAssemblies="@(InputAssemblies)" InternalizeExcludeAssemblies="@(InternalizeExcludeAssemblies)" WorkingDirectory="$(WorkingDirectory)" />
-  </Target>
-  
 </Project>

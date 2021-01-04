@@ -364,7 +364,7 @@ namespace CbStyles.Cbon.Parser
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static bool NotWord(char c) => c switch
         {
-            '"' or '\'' or '(' or ')' or ',' or ':' or ';' or '=' or '[' or ']' or '{' or '}' => true,
+            '#' or '"' or '\'' or '(' or ')' or ',' or ':' or ';' or '=' or '[' or ']' or '{' or '}' => true,
             _ => char.IsWhiteSpace(c),
         };
 

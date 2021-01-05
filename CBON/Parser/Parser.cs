@@ -274,30 +274,493 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
+        // todo remove regex
         private static readonly Regex NumReg = new Regex(@"(\d+[\d_]*(\.(\d+[\d_]*)?)?([eE][-+]?\d+[\d_]*)?)|(\.\d+[\d_]*([eE][-+]?\d+[\d_]*)?)", RegexOptions.Compiled);
         private static readonly Regex HexReg = new Regex(@"0x[\da-fA-F]+[\da-fA-F_]*", RegexOptions.Compiled);
+        private static readonly Regex DateReg = new Regex(@"(([+-]?\d{6})|(\d{4}))-((0[1-9])|(1[012]))-((0[1-9])|([12]\d)|(3[[01]))T(([01]\d)|(2[0-4])):[0-5]\d:[0-5]\d\.\d{3}(Z|([+-](([01]\d)|(2[0-4])):[0-5]\d))", RegexOptions.Compiled);
 
         //====================================================================================================
 
         public static (Code, CbVal)? Word(Code code)
         {
+            nuint index;
             switch (code.First)
             {
                 case null: return null;
                 case char c when NotWord(c): return null;
+                case '0': goto num_hex_date;
+                case '-' or '+': //goto num_date0;
+                    index = 1;
+                    goto num;
+                case char c when c is (>= '1' and <= '9'): goto num_date1;
+                case '.':
+                    index = 1;
+                    goto num_dot;
+                case 'n':
+                    if (code[1u] is 'u' && code[2u] is 'l' && code[3u] is 'l' && code[4u] switch { null => true, char c when NotWord(c) => true, _ => false })
+                        return (code.Slice(4u), CbVal.NewNull());
+                    break;
+                case 't':
+                    if (code[1u] is 'r' && code[2u] is 'u' && code[3u] is 'e' && code[4u] switch { null => true, char c when NotWord(c) => true, _ => false })
+                        return (code.Slice(4u), CbVal.NewBool(true));
+                    break;
+                case 'f':
+                    if (code[1u] is 'a' && code[2u] is 'l' && code[3u] is 's' && code[4u] is 'e' && code[5u] switch { null => true, char c when NotWord(c) => true, _ => false })
+                        return (code.Slice(5u), CbVal.NewBool(false));
+                    break;
+                default: break;
+            }
+            index = 1;
+            goto word;
+        //         0 …
+        // start at ^ 
+        num_hex_date:
+            switch (code[1])
+            {
+                case 'x' or 'X':
+                    index = 2;
+                    goto hex;
+                case '.':
+                    index = 2;
+                    goto num_dot;
+                case '_':
+                    index = 2;
+                    goto num;
+                case char c when IsNum(c):
+                    goto num_date2;
+                case char c when NotWord(c):
+                case null:
+                    index = 1;
+                    goto NumEnd;
                 default:
-                    var e = FindIndex(code, 1, NotWord);
-                    var s = code.SliceTo(e).ToString();
-                    var v = s switch
+                    index = 1;
+                    goto word;
+            }
+        //        0x …
+        // start at ^ 
+        hex:
+            {
+                index = FindIndex(code, index, NotUnderscore);
+                switch (code[index])
+                {
+                    case char c when IsHex(c): break;
+                    case null:
+                    case char c when NotWord(c):
+                        goto WordEnd;
+                    default: goto word;
+                }
+                index = FindIndex(code, index, NotHexWithUnderscore);
+                switch (code[index])
+                {
+                    case null:
+                    case char c when NotWord(c):
+                        var s = code.Slice(2u, index).ToString();
+                        return (code.Slice(index), CbVal.NewHex(s));
+                    default: goto word;
+                }
+            }
+        // .NET DateTime Not Support B.C. Time
+        //      [+-] …
+        // start at ^ 
+        //num_date0:
+        //    index = 1;
+        //    {
+        //    loop:
+        //        switch (code[index])
+        //        {
+        //            case '-' when index == 7:
+        //                index++;
+        //                goto date;
+        //            case char c when IsNum(c) && index == 7:
+        //                index++;
+        //                goto num;
+        //            case char c when IsNum(c):
+        //                index++;
+        //                goto loop;
+        //            case '.':
+        //                index++;
+        //                goto num_dot;
+        //            case '_':
+        //                index++;
+        //                goto num;
+        //            case null:
+        //            case char c when NotWord(c):
+        //                goto NumEnd;
+        //            default:
+        //                goto word;
+        //        }
+        //    }
+        //     [1-9] …
+        // start at ^
+        num_date1:
+            index = 1;
+            goto num_date;
+        //    0[0-9] …
+        // start at ^ 
+        num_date2:
+            index = 2;
+        num_date:
+            {
+            loop:
+                switch (code[index])
+                {
+                    case '-' when index == 4:
+                        index++;
+                        goto date;
+                    case char c when IsNum(c) && index == 4:
+                        index++;
+                        goto num;
+                    case char c when IsNum(c):
+                        index++;
+                        goto loop;
+                    case '.':
+                        index++;
+                        goto num_dot;
+                    case '_':
+                        index++;
+                        goto num;
+                    case 'e' or 'E':
+                        index++;
+                        goto num_e;
+                    case null:
+                    case char c when NotWord(c):
+                        goto NumEnd;
+                    default:
+                        goto word;
+                }
+            }
+        //   …[0-9_] …
+        // start at ^ 
+        num:
+            {
+                index = FindIndex(code, index, NotNumBody);
+                switch (code[index])
+                {
+                    case '.':
+                        index++;
+                        goto num_dot;
+                    case 'e' or 'E':
+                        index++;
+                        goto num_e;
+                    case null:
+                    case char c when NotWord(c):
+                        goto NumEnd;
+                    default:
+                        goto word;
+                }
+            }
+        //       … . …
+        // start at ^ 
+        num_dot:
+            {
+                index = FindIndex(code, index, NotUnderscore);
+                switch (code[index])
+                {
+                    case 'e' or 'E':
+                        index++;
+                        goto num_e;
+                    case char c when IsNum(c): break;
+                    case null:
+                    case char c when NotWord(c):
+                        goto WordEnd;
+                    default: goto word;
+                }
+                index = FindIndex(code, index, NotNumBody);
+                switch (code[index])
+                {
+                    case 'e' or 'E':
+                        index++;
+                        goto num_e;
+                    case null:
+                    case char c when NotWord(c):
+                        goto NumEnd;
+                    default: goto word;
+                }
+            }
+            throw new NotImplementedException("never");
+        //       … e …
+        // start at ^ 
+        num_e:
+            {
+                switch (code[index])
+                {
+                    case '+' or '-':
+                        index++;
+                        break;
+                    case char c when IsNum(c):
+                        index++;
+                        goto numpart;
+                    case null:
+                    case char c when NotWord(c):
+                        goto WordEnd;
+                    default: goto word;
+                }
+                index = FindIndex(code, index, NotUnderscore);
+                switch (code[index])
+                {
+                    case char c when IsNum(c): break;
+                    case null:
+                    case char c when NotWord(c):
+                        goto WordEnd;
+                    default: goto word;
+                }
+            numpart:
+                index = FindIndex(code, index, NotNumBody);
+                switch (code[index])
+                {
+                    case null:
+                    case char c when NotWord(c):
+                        goto NumEnd;
+                    default: goto word;
+                }
+            }
+        //  ±YYYYYY- …
+        //     YYYY- …
+        // start at ^ 
+        date:
+            #region date
+            {
+                switch (code[index])
+                {
+                    case '0':
+                        index++;
+                        switch (code[index])
+                        {
+                            case char c when c is >= '1' and <= '9': break;
+                            case null: case char c when NotWord(c): goto WordEnd;
+                            default: goto word;
+                        }
+                        break;
+                    case '1':
+                        index++;
+                        switch (code[index])
+                        {
+                            case char c when c is >= '0' and <= '2': break;
+                            case null: case char c when NotWord(c): goto WordEnd;
+                            default: goto word;
+                        }
+                        break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                switch (code[index])
+                {
+                    case '-': break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                switch (code[index])
+                {
+                    case '0':
+                        index++;
+                        switch (code[index])
+                        {
+                            case char c when c is >= '1' and <= '9': break;
+                            case null: case char c when NotWord(c): goto WordEnd;
+                            default: goto word;
+                        }
+                        break;
+                    case '1' or '2':
+                        index++;
+                        switch (code[index])
+                        {
+                            case char c when IsNum(c): break;
+                            case null: case char c when NotWord(c): goto WordEnd;
+                            default: goto word;
+                        }
+                        break;
+                    case '3':
+                        index++;
+                        switch (code[index])
+                        {
+                            case '0' or '1': break;
+                            case null: case char c when NotWord(c): goto WordEnd;
+                            default: goto word;
+                        }
+                        break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                switch (code[index])
+                {
+                    case 'T': break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                switch (code[index])
+                {
+                    case '0' or '1':
+                        index++;
+                        switch (code[index])
+                        {
+                            case char c when IsNum(c): break;
+                            case null: case char c when NotWord(c): goto WordEnd;
+                            default: goto word;
+                        }
+                        break;
+                    case '2':
+                        index++;
+                        switch (code[index])
+                        {
+                            case char c when c is >= '0' and <= '4': break;
+                            case null: case char c when NotWord(c): goto WordEnd;
+                            default: goto word;
+                        }
+                        break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                switch (code[index])
+                {
+                    case ':': break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                switch (code[index])
+                {
+                    case char c0 when c0 is >= '0' and <= '5':
+                        index++;
+                        switch (code[index])
+                        {
+                            case char c when IsNum(c): break;
+                            case null: case char c when NotWord(c): goto WordEnd;
+                            default: goto word;
+                        }
+                        break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                switch (code[index])
+                {
+                    case ':': break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                switch (code[index])
+                {
+                    case char c0 when c0 is >= '0' and <= '5':
+                        index++;
+                        switch (code[index])
+                        {
+                            case char c when IsNum(c): break;
+                            case null: case char c when NotWord(c): goto WordEnd;
+                            default: goto word;
+                        }
+                        break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                switch (code[index])
+                {
+                    case '.': break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                if (!MatchN(code, ref index, IsNum, 3))
+                {
+                    switch (code[index])
                     {
-                        "null" => CbVal.NewNull(),
-                        "true" => CbVal.NewBool(true),
-                        "false" => CbVal.NewBool(false),
-                        _ when HexReg.IsMatch(s) => CbVal.NewHex(s[2..]),
-                        _ when NumReg.IsMatch(s) => CbVal.NewNum(s),
-                        _ => CbVal.NewStr(s),
-                    };
-                    return (code.Slice(e), v);
+                        case null: case char c when NotWord(c): goto WordEnd;
+                        default: goto word;
+                    }
+                }
+                switch (code[index])
+                {
+                    case 'Z':
+                        index++;
+                        switch (code[index])
+                        {
+                            case null: case char c when NotWord(c): goto DateEnd;
+                            default: goto word;
+                        }
+                    case '+' or '-': break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                switch (code[index])
+                {
+                    case '0' or '1':
+                        index++;
+                        switch (code[index])
+                        {
+                            case char c when IsNum(c): break;
+                            case null: case char c when NotWord(c): goto WordEnd;
+                            default: goto word;
+                        }
+                        break;
+                    case '2':
+                        index++;
+                        switch (code[index])
+                        {
+                            case char c when c is >= '0' and <= '4': break;
+                            case null: case char c when NotWord(c): goto WordEnd;
+                            default: goto word;
+                        }
+                        break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                switch (code[index])
+                {
+                    case ':': break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                switch (code[index])
+                {
+                    case char c0 when c0 is >= '0' and <= '5':
+                        index++;
+                        switch (code[index])
+                        {
+                            case char c when IsNum(c): break;
+                            case null: case char c when NotWord(c): goto WordEnd;
+                            default: goto word;
+                        }
+                        break;
+                    case null: case char c when NotWord(c): goto WordEnd;
+                    default: goto word;
+                }
+                index++;
+                switch (code[index])
+                {
+                    case null: case char c when NotWord(c): goto DateEnd;
+                    default: goto word;
+                }
+            }
+            #endregion
+            throw new NotImplementedException("never");
+        word:
+            {
+                index = FindIndex(code, index, NotWord);
+                goto WordEnd;
+            }
+        NumEnd:
+            {
+                var s = code.SliceTo(index).ToString();
+                return (code.Slice(index), CbVal.NewNum(s));
+            }
+        WordEnd:
+            {
+                var s = code.SliceTo(index).ToString();
+                return (code.Slice(index), CbVal.NewStr(s));
+            }
+        DateEnd:
+            {
+                var s = code.SliceTo(index).ToString();
+                return (code.Slice(index), CbVal.NewDate(s));
             }
         }
 
@@ -368,6 +831,9 @@ namespace CbStyles.Cbon.Parser
         };
 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        private static bool NotUnderscore(char c) => c != '_';
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static nuint FindIndex(Code code, nuint index, Func<char, bool> f)
         {
             loop: switch (code[index])
@@ -377,9 +843,35 @@ namespace CbStyles.Cbon.Parser
             }
         }
 
+        /// after loop index is next not read char
+        /// false index is now read char
+        private static bool MatchN(Code code, ref nuint index, Func<char, bool> f, nuint n)
+        {
+            if (n == 0) return false;
+        loop: switch (code[index])
+            {
+                case char c when f(c):
+                    index++;
+                    n--;
+                    if (n == 0) return true;
+                    goto loop;
+                default: return false;
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static bool IsHex(char c) => c is (>= '0' and <= '9') or (>= 'a' and <= 'z') or (>= 'A' and <= 'Z');
+
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static bool NotHex(char c) => !(c is (>= '0' and <= '9') or (>= 'a' and <= 'z') or (>= 'A' and <= 'Z'));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        private static bool NotHexWithUnderscore(char c) => !(c is (>= '0' and <= '9') or (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or '_');
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        private static bool NotNumBody(char c) => !(c is (>= '0' and <= '9') or '_');
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        private static bool IsNum(char c) => c is >= '0' and <= '9';
     }
 }

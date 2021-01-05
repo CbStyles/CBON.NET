@@ -9,11 +9,12 @@ namespace CbStyles.Cbon
     {
         public enum CbType
         {
-            Null, Bool, Num, Hex, Str, Arr, Obj, Union
+            Null, Bool, Num, Hex, Date, Str, Arr, Obj, Union
         }
 
         public CbType Type { get; }
         private readonly bool data;
+        private readonly DateTime? date;
         private readonly string? str;
         private readonly List<CbVal>? arr;
         private readonly Dictionary<string, CbVal>? obj;
@@ -28,6 +29,7 @@ namespace CbStyles.Cbon
             Type = tag;
             data = default;
             str = null;
+            date = null;
             arr = null;
             obj = null;
             union = null;
@@ -38,6 +40,7 @@ namespace CbStyles.Cbon
             Type = CbType.Bool;
             this.data = data;
             str = null;
+            date = null;
             arr = null;
             obj = null;
             union = null;
@@ -48,6 +51,18 @@ namespace CbStyles.Cbon
             Type = tag;
             data = default;
             this.str = str;
+            date = null;
+            arr = null;
+            obj = null;
+            union = null;
+            numCache = null;
+        }
+        private CbVal(DateTime date)
+        {
+            Type = CbType.Date;
+            data = default;
+            str = null;
+            this.date = date;
             arr = null;
             obj = null;
             union = null;
@@ -58,6 +73,7 @@ namespace CbStyles.Cbon
             Type = CbType.Arr;
             data = default;
             str = null;
+            date = null;
             this.arr = arr;
             obj = null;
             union = null;
@@ -68,6 +84,7 @@ namespace CbStyles.Cbon
             Type = CbType.Obj;
             data = default;
             str = null;
+            date = null;
             arr = null;
             this.obj = obj;
             union = null;
@@ -78,6 +95,7 @@ namespace CbStyles.Cbon
             Type = CbType.Union;
             data = default;
             str = null;
+            date = null;
             arr = null;
             obj = null;
             this.union = union;
@@ -93,6 +111,7 @@ namespace CbStyles.Cbon
         public bool IsNum => Type == CbType.Num;
         public bool IsHex => Type == CbType.Hex;
         public bool IsStr => Type == CbType.Str;
+        public bool IsDate => Type == CbType.Date;
         public bool IsArr => Type == CbType.Arr;
         public bool IsObj => Type == CbType.Obj;
         public bool IsUnion => Type == CbType.Union;
@@ -105,6 +124,7 @@ namespace CbStyles.Cbon
         public string Num => IsNum ? str! : throw KindErr(nameof(CbType.Num));
         public string Hex => IsHex ? str! : throw KindErr(nameof(CbType.Hex));
         public string Str => IsStr ? str! : throw KindErr(nameof(CbType.Str));
+        public DateTime Date => IsDate ? date!.Value : throw KindErr(nameof(CbType.Date));
         public List<CbVal> Arr => IsArr ? arr! : throw KindErr(nameof(CbType.Arr));
         public Dictionary<string, CbVal> Obj => IsObj ? obj! : throw KindErr(nameof(CbType.Obj));
         public CbUnion Union => IsUnion ? union! : throw KindErr(nameof(CbType.Union));
@@ -117,6 +137,7 @@ namespace CbStyles.Cbon
         public string? TryNum => IsNum ? str! : null;
         public string? TryHex => IsHex ? str! : null;
         public string? TryStr => IsStr ? str! : null;
+        public DateTime? TryDate => IsDate ? date!.Value : null;
         public List<CbVal>? TryArr => IsArr ? arr! : null;
         public Dictionary<string, CbVal>? TryObj => IsObj ? obj! : null;
         public CbUnion? TryUnion => IsUnion ? union! : null;
@@ -152,6 +173,8 @@ namespace CbStyles.Cbon
         public static CbVal NewNum(string raw) => new CbVal(CbType.Num, raw.Replace("_", ""));
         public static CbVal NewHex(string raw) => new CbVal(CbType.Hex, raw);
         public static CbVal NewStr(string str) => new CbVal(CbType.Str, str);
+        public static CbVal NewDate(string date) => new CbVal(DateTime.Parse(date));
+        public static CbVal NewDate(DateTime date) => new CbVal(date);
         public static CbVal NewArr(List<CbVal> arr) => new CbVal(arr);
         public static CbVal NewObj(Dictionary<string, CbVal> obj) => new CbVal(obj);
         public static CbVal NewUnion(CbUnion union) => new CbVal(union);
@@ -170,6 +193,7 @@ namespace CbStyles.Cbon
             CbType.Num => str! == other.str!,
             CbType.Hex => str! == other.str!,
             CbType.Str => str! == other.str!,
+            CbType.Date => date!.Value == other.date!.Value,
             CbType.Arr => arr! == other.arr!,
             CbType.Obj => obj! == other.obj!,
             CbType.Union => union! == other.union!,
@@ -183,6 +207,7 @@ namespace CbStyles.Cbon
             CbType.Num => HashCode.Combine(Type, str),
             CbType.Hex => HashCode.Combine(Type, str),
             CbType.Str => HashCode.Combine(Type, str),
+            CbType.Date => HashCode.Combine(Type, date!.Value),
             CbType.Arr => HashCode.Combine(Type, arr!),
             CbType.Obj => HashCode.Combine(Type, obj!),
             CbType.Union => HashCode.Combine(Type, union!),

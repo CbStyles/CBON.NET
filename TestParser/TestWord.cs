@@ -108,5 +108,36 @@ namespace TestParser
                 Assert.AreEqual(CbVal.NewNum("123e-5"), r);
             });
         }
+
+        [Test]
+        public void TestWord11()
+        {
+            var code = "2021-01-05T10:15:35.123Z";
+            Parser.RunInReader(code, code => {
+                var r = Parser.Word(code).Value.Item2;
+                Assert.AreEqual(CbVal.NewDate("2021-01-05T10:15:35.123Z"), r);
+            });
+        }
+
+        [Test]
+        public void TestWord12()
+        {
+            var code = "123.__456";
+            Parser.RunInReader(code, code => {
+                var r = Parser.Word(code).Value.Item2;
+                Assert.AreEqual(CbVal.NewNum("123.456"), r);
+            });
+        }
+
+        [Test]
+        public void TestWord13()
+        {
+            var code = "123456789";
+            Parser.RunInReader(code, code => {
+                var r = Parser.Word(code).Value.Item2;
+                Assert.AreEqual(CbVal.NewNum("123456789"), r);
+            });
+        }
+
     }
 }

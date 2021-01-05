@@ -1,17 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace CbStyles.Cbon
 {
     [Serializable]
-    public readonly struct CbVal : IEquatable<CbVal>
+    public partial struct CbVal : IEquatable<CbVal>
     {
+        public enum CbType
+        {
+            Null, Bool, Num, Hex, Str, Arr, Obj, Union
+        }
+
         public CbType Type { get; }
         private readonly bool data;
         private readonly string? str;
         private readonly List<CbVal>? arr;
         private readonly Dictionary<string, CbVal>? obj;
         private readonly CbUnion? union;
+
+        private NumCache? numCache;
+
+        #region Constructor
 
         private CbVal(CbType tag)
         {
@@ -21,6 +31,7 @@ namespace CbStyles.Cbon
             arr = null;
             obj = null;
             union = null;
+            numCache = null;
         }
         private CbVal(bool data)
         {
@@ -30,6 +41,7 @@ namespace CbStyles.Cbon
             arr = null;
             obj = null;
             union = null;
+            numCache = null;
         }
         private CbVal(CbType tag, string str)
         {
@@ -39,6 +51,7 @@ namespace CbStyles.Cbon
             arr = null;
             obj = null;
             union = null;
+            numCache = null;
         }
         private CbVal(List<CbVal> arr)
         {
@@ -48,6 +61,7 @@ namespace CbStyles.Cbon
             this.arr = arr;
             obj = null;
             union = null;
+            numCache = null;
         }
         private CbVal(Dictionary<string, CbVal> obj)
         {
@@ -57,6 +71,7 @@ namespace CbStyles.Cbon
             arr = null;
             this.obj = obj;
             union = null;
+            numCache = null;
         }
         private CbVal(CbUnion union)
         {
@@ -66,7 +81,12 @@ namespace CbStyles.Cbon
             arr = null;
             obj = null;
             this.union = union;
+            numCache = null;
         }
+
+        #endregion
+
+        #region IsX
 
         public bool IsNull => Type == CbType.Null;
         public bool IsBool => Type == CbType.Bool;
@@ -77,13 +97,21 @@ namespace CbStyles.Cbon
         public bool IsObj => Type == CbType.Obj;
         public bool IsUnion => Type == CbType.Union;
 
-        public bool Bool => IsBool ? data : throw new ArgumentException("union kind error");
-        public string Num => IsNum ? str! : throw new ArgumentException("union kind error");
-        public string Hex => IsHex ? str! : throw new ArgumentException("union kind error");
-        public string Str => IsStr ? str! : throw new ArgumentException("union kind error");
-        public List<CbVal> Arr => IsArr ? arr! : throw new ArgumentException("union kind error");
-        public Dictionary<string, CbVal> Obj => IsObj ? obj! : throw new ArgumentException("union kind error");
-        public CbUnion Union => IsUnion ? union! : throw new ArgumentException("union kind error");
+        #endregion
+
+        #region Get
+
+        public bool Bool => IsBool ? data : throw KindErr(nameof(CbType.Bool));
+        public string Num => IsNum ? str! : throw KindErr(nameof(CbType.Num));
+        public string Hex => IsHex ? str! : throw KindErr(nameof(CbType.Hex));
+        public string Str => IsStr ? str! : throw KindErr(nameof(CbType.Str));
+        public List<CbVal> Arr => IsArr ? arr! : throw KindErr(nameof(CbType.Arr));
+        public Dictionary<string, CbVal> Obj => IsObj ? obj! : throw KindErr(nameof(CbType.Obj));
+        public CbUnion Union => IsUnion ? union! : throw KindErr(nameof(CbType.Union));
+
+        #endregion
+
+        #region TryGet
 
         public bool? TryBool => IsBool ? data : null;
         public string? TryNum => IsNum ? str! : null;
@@ -92,6 +120,32 @@ namespace CbStyles.Cbon
         public List<CbVal>? TryArr => IsArr ? arr! : null;
         public Dictionary<string, CbVal>? TryObj => IsObj ? obj! : null;
         public CbUnion? TryUnion => IsUnion ? union! : null;
+
+        #endregion
+
+        #region Char
+
+        public bool IsChar => IsStr && str!.Length == 1;
+
+        public char? Char() => IsChar ? str![0] : null;
+
+        public bool Char(out char result)
+        {
+            if (IsChar)
+            {
+                result = str![0];
+                return true;
+            }
+            else
+            {
+                result = default;
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region New
 
         public static CbVal NewNull() => new CbVal(CbType.Null);
         public static CbVal NewBool(bool val) => new CbVal(val);
@@ -103,10 +157,9 @@ namespace CbStyles.Cbon
         public static CbVal NewUnion(CbUnion union) => new CbVal(union);
         public static CbVal NewUnion(string tag, CbVal val) => new CbVal(new CbUnion(tag, val));
 
-        public enum CbType
-        {
-            Null, Bool, Num, Hex, Str, Arr, Obj, Union
-        }
+        #endregion
+
+        #region Equals
 
         public override bool Equals(object? obj) => obj is CbVal val && Equals(val);
 
@@ -139,9 +192,14 @@ namespace CbStyles.Cbon
         public static bool operator ==(CbVal left, CbVal right) => left.Equals(right);
 
         public static bool operator !=(CbVal left, CbVal right) => !(left == right);
+
+        #endregion
+
+        private static ArgumentException KindErr(string type) => new ArgumentException($"Type Error, This {nameof(CbVal)} type is not ${type}");
     }
 
     [Serializable]
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public record CbUnion
     {
         public readonly string Tag;
@@ -152,5 +210,8 @@ namespace CbStyles.Cbon
             Tag = tag;
             Value = value;
         }
+
+        private string GetDebuggerDisplay() => $"({Tag}){Value}";
+        public override string ToString() => $"({Tag}){Value}";
     }
 }

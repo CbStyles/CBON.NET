@@ -520,30 +520,14 @@ namespace CbStyles.Cbon.Parser
         date:
             #region date
             {
-                switch (code[index])
+                if (!MatchN(code, ref index, IsNum, 2))
                 {
-                    case '0':
-                        index++;
-                        switch (code[index])
-                        {
-                            case char c when c is >= '1' and <= '9': break;
-                            case null: case char c when NotWord(c): goto WordEnd;
-                            default: goto word;
-                        }
-                        break;
-                    case '1':
-                        index++;
-                        switch (code[index])
-                        {
-                            case char c when c is >= '0' and <= '2': break;
-                            case null: case char c when NotWord(c): goto WordEnd;
-                            default: goto word;
-                        }
-                        break;
-                    case null: case char c when NotWord(c): goto WordEnd;
-                    default: goto word;
+                    switch (code[index])
+                    {
+                        case null: case char c when NotWord(c): goto WordEnd;
+                        default: goto word;
+                    }
                 }
-                index++;
                 switch (code[index])
                 {
                     case '-': break;
@@ -551,39 +535,14 @@ namespace CbStyles.Cbon.Parser
                     default: goto word;
                 }
                 index++;
-                switch (code[index])
+                if (!MatchN(code, ref index, IsNum, 2))
                 {
-                    case '0':
-                        index++;
-                        switch (code[index])
-                        {
-                            case char c when c is >= '1' and <= '9': break;
-                            case null: case char c when NotWord(c): goto WordEnd;
-                            default: goto word;
-                        }
-                        break;
-                    case '1' or '2':
-                        index++;
-                        switch (code[index])
-                        {
-                            case char c when IsNum(c): break;
-                            case null: case char c when NotWord(c): goto WordEnd;
-                            default: goto word;
-                        }
-                        break;
-                    case '3':
-                        index++;
-                        switch (code[index])
-                        {
-                            case '0' or '1': break;
-                            case null: case char c when NotWord(c): goto WordEnd;
-                            default: goto word;
-                        }
-                        break;
-                    case null: case char c when NotWord(c): goto WordEnd;
-                    default: goto word;
+                    switch (code[index])
+                    {
+                        case null: case char c when NotWord(c): goto WordEnd;
+                        default: goto word;
+                    }
                 }
-                index++;
                 switch (code[index])
                 {
                     case 'T': break;
@@ -591,30 +550,14 @@ namespace CbStyles.Cbon.Parser
                     default: goto word;
                 }
                 index++;
-                switch (code[index])
+                if (!MatchN(code, ref index, IsNum, 2))
                 {
-                    case '0' or '1':
-                        index++;
-                        switch (code[index])
-                        {
-                            case char c when IsNum(c): break;
-                            case null: case char c when NotWord(c): goto WordEnd;
-                            default: goto word;
-                        }
-                        break;
-                    case '2':
-                        index++;
-                        switch (code[index])
-                        {
-                            case char c when c is >= '0' and <= '4': break;
-                            case null: case char c when NotWord(c): goto WordEnd;
-                            default: goto word;
-                        }
-                        break;
-                    case null: case char c when NotWord(c): goto WordEnd;
-                    default: goto word;
+                    switch (code[index])
+                    {
+                        case null: case char c when NotWord(c): goto WordEnd;
+                        default: goto word;
+                    }
                 }
-                index++;
                 switch (code[index])
                 {
                     case ':': break;
@@ -622,21 +565,14 @@ namespace CbStyles.Cbon.Parser
                     default: goto word;
                 }
                 index++;
-                switch (code[index])
+                if (!MatchN(code, ref index, IsNum, 2))
                 {
-                    case char c0 when c0 is >= '0' and <= '5':
-                        index++;
-                        switch (code[index])
-                        {
-                            case char c when IsNum(c): break;
-                            case null: case char c when NotWord(c): goto WordEnd;
-                            default: goto word;
-                        }
-                        break;
-                    case null: case char c when NotWord(c): goto WordEnd;
-                    default: goto word;
+                    switch (code[index])
+                    {
+                        case null: case char c when NotWord(c): goto WordEnd;
+                        default: goto word;
+                    }
                 }
-                index++;
                 switch (code[index])
                 {
                     case ':': break;
@@ -644,21 +580,14 @@ namespace CbStyles.Cbon.Parser
                     default: goto word;
                 }
                 index++;
-                switch (code[index])
+                if (!MatchN(code, ref index, IsNum, 2))
                 {
-                    case char c0 when c0 is >= '0' and <= '5':
-                        index++;
-                        switch (code[index])
-                        {
-                            case char c when IsNum(c): break;
-                            case null: case char c when NotWord(c): goto WordEnd;
-                            default: goto word;
-                        }
-                        break;
-                    case null: case char c when NotWord(c): goto WordEnd;
-                    default: goto word;
+                    switch (code[index])
+                    {
+                        case null: case char c when NotWord(c): goto WordEnd;
+                        default: goto word;
+                    }
                 }
-                index++;
                 switch (code[index])
                 {
                     case '.': break;
@@ -688,30 +617,14 @@ namespace CbStyles.Cbon.Parser
                     default: goto word;
                 }
                 index++;
-                switch (code[index])
+                if (!MatchN(code, ref index, IsNum, 2))
                 {
-                    case '0' or '1':
-                        index++;
-                        switch (code[index])
-                        {
-                            case char c when IsNum(c): break;
-                            case null: case char c when NotWord(c): goto WordEnd;
-                            default: goto word;
-                        }
-                        break;
-                    case '2':
-                        index++;
-                        switch (code[index])
-                        {
-                            case char c when c is >= '0' and <= '4': break;
-                            case null: case char c when NotWord(c): goto WordEnd;
-                            default: goto word;
-                        }
-                        break;
-                    case null: case char c when NotWord(c): goto WordEnd;
-                    default: goto word;
+                    switch (code[index])
+                    {
+                        case null: case char c when NotWord(c): goto WordEnd;
+                        default: goto word;
+                    }
                 }
-                index++;
                 switch (code[index])
                 {
                     case ':': break;
@@ -719,25 +632,23 @@ namespace CbStyles.Cbon.Parser
                     default: goto word;
                 }
                 index++;
-                switch (code[index])
+                if (!MatchN(code, ref index, IsNum, 2))
                 {
-                    case char c0 when c0 is >= '0' and <= '5':
-                        index++;
-                        switch (code[index])
-                        {
-                            case char c when IsNum(c): break;
-                            case null: case char c when NotWord(c): goto WordEnd;
-                            default: goto word;
-                        }
-                        break;
-                    case null: case char c when NotWord(c): goto WordEnd;
-                    default: goto word;
+                    switch (code[index])
+                    {
+                        case null: case char c when NotWord(c): goto WordEnd;
+                        default: goto word;
+                    }
                 }
-                index++;
                 switch (code[index])
                 {
                     case null: case char c when NotWord(c): goto DateEnd;
                     default: goto word;
+                }
+            DateEnd:
+                {
+                    var s = code.SliceTo(index).ToString();
+                    return (code.Slice(index), CbVal.NewDate(s));
                 }
             }
             #endregion
@@ -756,11 +667,6 @@ namespace CbStyles.Cbon.Parser
             {
                 var s = code.SliceTo(index).ToString();
                 return (code.Slice(index), CbVal.NewStr(s));
-            }
-        DateEnd:
-            {
-                var s = code.SliceTo(index).ToString();
-                return (code.Slice(index), CbVal.NewDate(s));
             }
         }
 

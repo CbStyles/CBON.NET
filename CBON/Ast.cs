@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace CbStyles.Cbon
 {
@@ -9,12 +10,22 @@ namespace CbStyles.Cbon
     {
         public enum CbType
         {
-            Null, Bool, Num, Hex, Date, Str, Arr, Obj, Union
+            Null, Bool, Num, Hex, Date, UUID, Str, Arr, Obj, Union
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        private struct UnionStruct
+        {
+            [FieldOffset(0)]
+            public bool boolean;
+            [FieldOffset(0)]
+            public DateTime date;
+            [FieldOffset(0)]
+            public Guid uuid;
         }
 
         public CbType Type { get; }
-        private readonly bool data;
-        private readonly DateTime? date;
+        private readonly UnionStruct data;
         private readonly string? str;
         private readonly List<CbVal>? arr;
         private readonly Dictionary<string, CbVal>? obj;
@@ -29,18 +40,36 @@ namespace CbStyles.Cbon
             Type = tag;
             data = default;
             str = null;
-            date = null;
             arr = null;
             obj = null;
             union = null;
             numCache = null;
         }
-        private CbVal(bool data)
+        private CbVal(bool boolean)
         {
             Type = CbType.Bool;
-            this.data = data;
+            data = new UnionStruct { boolean = boolean };
             str = null;
-            date = null;
+            arr = null;
+            obj = null;
+            union = null;
+            numCache = null;
+        }
+        private CbVal(DateTime date)
+        {
+            Type = CbType.Date;
+            data = new UnionStruct { date = date };
+            str = null;
+            arr = null;
+            obj = null;
+            union = null;
+            numCache = null;
+        }
+        private CbVal(Guid uuid)
+        {
+            Type = CbType.UUID;
+            data = new UnionStruct { uuid = uuid };
+            str = null;
             arr = null;
             obj = null;
             union = null;
@@ -51,18 +80,6 @@ namespace CbStyles.Cbon
             Type = tag;
             data = default;
             this.str = str;
-            date = null;
-            arr = null;
-            obj = null;
-            union = null;
-            numCache = null;
-        }
-        private CbVal(DateTime date)
-        {
-            Type = CbType.Date;
-            data = default;
-            str = null;
-            this.date = date;
             arr = null;
             obj = null;
             union = null;
@@ -73,7 +90,6 @@ namespace CbStyles.Cbon
             Type = CbType.Arr;
             data = default;
             str = null;
-            date = null;
             this.arr = arr;
             obj = null;
             union = null;
@@ -84,7 +100,6 @@ namespace CbStyles.Cbon
             Type = CbType.Obj;
             data = default;
             str = null;
-            date = null;
             arr = null;
             this.obj = obj;
             union = null;
@@ -95,7 +110,6 @@ namespace CbStyles.Cbon
             Type = CbType.Union;
             data = default;
             str = null;
-            date = null;
             arr = null;
             obj = null;
             this.union = union;
@@ -108,10 +122,11 @@ namespace CbStyles.Cbon
 
         public bool IsNull => Type == CbType.Null;
         public bool IsBool => Type == CbType.Bool;
+        public bool IsDate => Type == CbType.Date;
+        public bool IsUUID => Type == CbType.UUID;
         public bool IsNum => Type == CbType.Num;
         public bool IsHex => Type == CbType.Hex;
         public bool IsStr => Type == CbType.Str;
-        public bool IsDate => Type == CbType.Date;
         public bool IsArr => Type == CbType.Arr;
         public bool IsObj => Type == CbType.Obj;
         public bool IsUnion => Type == CbType.Union;
@@ -120,11 +135,12 @@ namespace CbStyles.Cbon
 
         #region Get
 
-        public bool Bool => IsBool ? data : throw KindErr(nameof(CbType.Bool));
+        public bool Bool => IsBool ? data.boolean : throw KindErr(nameof(CbType.Bool));
+        public DateTime Date => IsDate ? data.date : throw KindErr(nameof(CbType.Date));
+        public Guid UUID => IsUUID ? data.uuid : throw KindErr(nameof(CbType.UUID));
         public string Num => IsNum ? str! : throw KindErr(nameof(CbType.Num));
         public string Hex => IsHex ? str! : throw KindErr(nameof(CbType.Hex));
         public string Str => IsStr ? str! : throw KindErr(nameof(CbType.Str));
-        public DateTime Date => IsDate ? date!.Value : throw KindErr(nameof(CbType.Date));
         public List<CbVal> Arr => IsArr ? arr! : throw KindErr(nameof(CbType.Arr));
         public Dictionary<string, CbVal> Obj => IsObj ? obj! : throw KindErr(nameof(CbType.Obj));
         public CbUnion Union => IsUnion ? union! : throw KindErr(nameof(CbType.Union));
@@ -133,11 +149,12 @@ namespace CbStyles.Cbon
 
         #region TryGet
 
-        public bool? TryBool => IsBool ? data : null;
+        public bool? TryBool => IsBool ? data.boolean : null;
+        public DateTime? TryDate => IsDate ? data.date : null;
+        public Guid? TryUUID => IsUUID ? data.uuid : null;
         public string? TryNum => IsNum ? str! : null;
         public string? TryHex => IsHex ? str! : null;
         public string? TryStr => IsStr ? str! : null;
-        public DateTime? TryDate => IsDate ? date!.Value : null;
         public List<CbVal>? TryArr => IsArr ? arr! : null;
         public Dictionary<string, CbVal>? TryObj => IsObj ? obj! : null;
         public CbUnion? TryUnion => IsUnion ? union! : null;
@@ -170,11 +187,12 @@ namespace CbStyles.Cbon
 
         public static CbVal NewNull() => new CbVal(CbType.Null);
         public static CbVal NewBool(bool val) => new CbVal(val);
+        public static CbVal NewDate(string date) => new CbVal(DateTime.Parse(date));
+        public static CbVal NewDate(DateTime date) => new CbVal(date);
+        public static CbVal NewUUID(Guid uuid) => new CbVal(uuid);
         public static CbVal NewNum(string raw) => new CbVal(CbType.Num, raw.Replace("_", ""));
         public static CbVal NewHex(string raw) => new CbVal(CbType.Hex, raw);
         public static CbVal NewStr(string str) => new CbVal(CbType.Str, str);
-        public static CbVal NewDate(string date) => new CbVal(DateTime.Parse(date));
-        public static CbVal NewDate(DateTime date) => new CbVal(date);
         public static CbVal NewArr(List<CbVal> arr) => new CbVal(arr);
         public static CbVal NewObj(Dictionary<string, CbVal> obj) => new CbVal(obj);
         public static CbVal NewUnion(CbUnion union) => new CbVal(union);
@@ -189,11 +207,12 @@ namespace CbStyles.Cbon
         public bool Equals(CbVal other) => Type == other.Type && Type switch
         {
             CbType.Null => true,
-            CbType.Bool => data == other.data,
+            CbType.Bool => data.boolean == other.data.boolean,
+            CbType.Date => data.date == other.data.date,
+            CbType.UUID => data.uuid == other.data.uuid,
             CbType.Num => str! == other.str!,
             CbType.Hex => str! == other.str!,
             CbType.Str => str! == other.str!,
-            CbType.Date => date!.Value == other.date!.Value,
             CbType.Arr => arr! == other.arr!,
             CbType.Obj => obj! == other.obj!,
             CbType.Union => union! == other.union!,
@@ -203,11 +222,12 @@ namespace CbStyles.Cbon
         public override int GetHashCode() => Type switch
         {
             CbType.Null => HashCode.Combine(Type),
-            CbType.Bool => HashCode.Combine(Type, data),
+            CbType.Bool => HashCode.Combine(Type, data.boolean),
+            CbType.Date => HashCode.Combine(Type, data.date),
+            CbType.UUID => HashCode.Combine(Type, data.uuid),
             CbType.Num => HashCode.Combine(Type, str),
             CbType.Hex => HashCode.Combine(Type, str),
             CbType.Str => HashCode.Combine(Type, str),
-            CbType.Date => HashCode.Combine(Type, date!.Value),
             CbType.Arr => HashCode.Combine(Type, arr!),
             CbType.Obj => HashCode.Combine(Type, obj!),
             CbType.Union => HashCode.Combine(Type, union!),

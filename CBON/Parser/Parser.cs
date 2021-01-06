@@ -274,10 +274,7 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
-        // todo remove regex
-        private static readonly Regex NumReg = new Regex(@"(\d+[\d_]*(\.(\d+[\d_]*)?)?([eE][-+]?\d+[\d_]*)?)|(\.\d+[\d_]*([eE][-+]?\d+[\d_]*)?)", RegexOptions.Compiled);
-        private static readonly Regex HexReg = new Regex(@"0x[\da-fA-F]+[\da-fA-F_]*", RegexOptions.Compiled);
-        private static readonly Regex DateReg = new Regex(@"(([+-]?\d{6})|(\d{4}))-((0[1-9])|(1[012]))-((0[1-9])|([12]\d)|(3[[01]))T(([01]\d)|(2[0-4])):[0-5]\d:[0-5]\d\.\d{3}(Z|([+-](([01]\d)|(2[0-4])):[0-5]\d))", RegexOptions.Compiled);
+        private static readonly Regex RegNotWord = new Regex(@"(^0[xX]_*[\da-fA-F]+[\da-fA-F_]*$)|(^[+-]?\d+[\d_]*(\.(_*\d+[\d_]*)?)?([eE][-+]?_*\d+[\d_]*)?$)|(^[+-]?\.\d+[\d_]*([eE][-+]?_*\d+[\d_]*)?$)|(^[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}$)|(^.*[\[\]\{\}\(\)'"":=,;\s#]+.*$)", RegexOptions.Compiled);
 
         //====================================================================================================
 

@@ -7,14 +7,77 @@ using System.Text.RegularExpressions;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
+namespace CbStyles.Cbon
+{
+    public record CBONParserOptions
+    {
+        public bool RestoreSrcPos = false;
+    }
+}
+
 namespace CbStyles.Cbon.Parser
 {
-
     public static class Parser
     {
-        public unsafe static List<CbVal> Parse<T>(T source) where T: IEnumerable<char>
+
+        public unsafe static List<CbVal> Parse(string code)
         {
-            var code = Reader.Read(source).ToArray();
+            if (code.Length == 0) return new List<CbVal>();
+            try
+            {
+                fixed (char* ptr = code)
+                {
+                    var slice = new Code(ptr, (nuint)code.Length);
+                    return ArrLoopBody(slice, RootEndf).Item2;
+                }
+            }
+            catch (ParserError e)
+            {
+                throw new ParserException(e.Message, e.at, e);
+            }
+        }
+
+        public unsafe static List<CbVal> Parse(string code, CBONParserOptions options)
+        {
+            var RestoreSrcPos = options.RestoreSrcPos;
+
+            if (code.Length == 0) return new List<CbVal>();
+            try
+            {
+                fixed (char* ptr = code)
+                {
+                    var slice = new Code(ptr, (nuint)code.Length);
+                    return ArrLoopBody(slice, RootEndf).Item2;
+                }
+            }
+            catch (ParserError e)
+            {
+                if (RestoreSrcPos)
+                {
+                    var p = Reader.ReadPos(code).Skip((int)(e.at - 1)).First().AddOne();
+                    throw new ParserException(e.Message, e.at ,p, e);
+                } 
+                else
+                {
+                    throw new ParserException(e.Message, e.at, e);
+                }
+            }
+        }
+
+        public unsafe static List<CbVal> Parse<T>(T source) where T : IEnumerable<char>
+        {
+            var code = source.ToArray();
+            return Parse(code);
+        }
+
+        public unsafe static List<CbVal> Parse<T>(T source, CBONParserOptions options) where T : IEnumerable<char>
+        {
+            var code = source.ToArray();
+            return Parse(code, options);
+        }
+
+        public unsafe static List<CbVal> Parse(char[] code)
+        {
             if (code.LongLength == 0) return new List<CbVal>();
             try
             {
@@ -26,17 +89,45 @@ namespace CbStyles.Cbon.Parser
             }
             catch (ParserError e)
             {
-                var p = Reader.ReadPos(source).Skip((int)(e.at - 1)).First().AddOne();
-                throw new ParserException(e.Message, p, e);
+                throw new ParserException(e.Message, e.at, e);
             }
-            
         }
+
+        public unsafe static List<CbVal> Parse(char[] code, CBONParserOptions options)
+        {
+            var RestoreSrcPos = options.RestoreSrcPos;
+
+            if (code.LongLength == 0) return new List<CbVal>();
+            try
+            {
+                fixed (char* ptr = code)
+                {
+                    var slice = new Code(ptr, (nuint)code.LongLength);
+                    return ArrLoopBody(slice, RootEndf).Item2;
+                }
+            }
+            catch (ParserError e)
+            {
+                if (RestoreSrcPos)
+                {
+                    var p = Reader.ReadPos(code).Skip((int)(e.at - 1)).First().AddOne();
+                    throw new ParserException(e.Message, e.at, p, e);
+                }
+                else
+                {
+                    throw new ParserException(e.Message, e.at, e);
+                }
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private static (Code, bool) RootEndf(Code code) => (code, code.IsEmpty);
 
+        //====================================================================================================
+
         public static unsafe R? RunInReader<T, R>(T source, Func<Code, R> f) where T : IEnumerable<char>
         {
-            var code = Reader.Read(source).ToArray();
+            var code = source.ToArray();
             if (code.LongLength == 0) return default;
             try
             {
@@ -49,12 +140,12 @@ namespace CbStyles.Cbon.Parser
             catch (ParserError e)
             {
                 var p = Reader.ReadPos(source).Skip((int)(e.at - 1)).First().AddOne();
-                throw new ParserException(e.Message, p, e);
+                throw new ParserException(e.Message, e.at, p, e);
             }
         }
         public static unsafe void RunInReader<T>(T source, Action<Code> f) where T : IEnumerable<char>
         {
-            var code = Reader.Read(source).ToArray();
+            var code = source.ToArray();
             if (code.LongLength == 0) return;
             try
             {
@@ -68,10 +159,9 @@ namespace CbStyles.Cbon.Parser
             catch (ParserError e)
             {
                 var p = Reader.ReadPos(source).Skip((int)(e.at - 1)).First().AddOne();
-                throw new ParserException(e.Message, p, e);
+                throw new ParserException(e.Message, e.at, p, e);
             }
         }
-
 
         //====================================================================================================
 

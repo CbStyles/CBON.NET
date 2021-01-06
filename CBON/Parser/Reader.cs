@@ -5,28 +5,6 @@ namespace CbStyles.Cbon.Parser
 {
     internal static class Reader
     {
-        public static IEnumerable<char> Read<A>(A code) where A: IEnumerable<char>
-        {
-            var r = false;
-            foreach (var c in code)
-            {
-                if (c == '\r')
-                {
-                    yield return '\n';
-                    r = true;
-                }
-                else if (c == '\n')
-                {
-                    if (!r) yield return '\n';
-                    r = false;
-                }
-                else
-                {
-                    yield return c;
-                    r = false;
-                }
-            }
-        }
 
         public static IEnumerable<Pos> ReadPos<A>(A code) where A : IEnumerable<char> {
             var r = false;
@@ -34,9 +12,9 @@ namespace CbStyles.Cbon.Parser
             nuint column = 0;
             foreach (var c in code)
             {
+                yield return new Pos(line, column);
                 if (c == '\r')
                 {
-                    yield return new Pos(line, column);
                     line++;
                     column = 0;
                     r = true;
@@ -45,7 +23,6 @@ namespace CbStyles.Cbon.Parser
                 {
                     if (!r)
                     {
-                        yield return new Pos(line, column);
                         line++;
                         column = 0;
                     }
@@ -53,7 +30,6 @@ namespace CbStyles.Cbon.Parser
                 }
                 else
                 {
-                    yield return new Pos(line, column);
                     column++;
                     r = false;
                 }

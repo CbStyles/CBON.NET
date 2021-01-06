@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <!--<TargetFramework>netstandard2.0</TargetFramework>-->
     <RootNamespace>CbStyles.Cbon</RootNamespace>
     <Nullable>enable</Nullable>
     <Version>0.3.0</Version>
@@ -14,6 +15,7 @@
     <Description>.NET implementation for Common Bracket Object Notation</Description>
     <Company>CbStyles</Company>
     <Authors>CbStyles</Authors>
+    <!--<LangVersion>9.0</LangVersion>-->
     <Copyright>CbStyles</Copyright>
   </PropertyGroup>
 
@@ -26,11 +28,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Parser\Parser.cs~RFb7b45bc.TMP" />
     <None Include="..\LICENSE">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
   </ItemGroup>
+
+  <!--<ItemGroup>
+    <PackageReference Include="Microsoft.Bcl.HashCode" Version="1.1.0" />
+    <PackageReference Include="System.Memory" Version="4.5.4" />
+  </ItemGroup>-->
 
 </Project>

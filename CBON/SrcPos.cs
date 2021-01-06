@@ -53,6 +53,8 @@ namespace CbStyles.Cbon.SrcPos
 
         public int CompareTo(object? other, IComparer comparer) => other is Pos pos ? CompareTo(pos) : -1;
 
+        
+
         public static bool operator >(Pos left, Pos right)
         {
             if (left.line > right.line) return true;

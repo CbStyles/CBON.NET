@@ -120,7 +120,7 @@ namespace CbStyles.Cbon.Parser
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static (Code, bool) RootEndf(Code code) => (code, code.IsEmpty);
 
         //====================================================================================================
@@ -170,7 +170,7 @@ namespace CbStyles.Cbon.Parser
             '[' => ArrLoopBody(code.Tail, ArrLoopEndf),
             _ => null,
         };
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static (Code, bool) ArrLoopEndf(Code code) => code.First switch { ']' => (code.Tail, true), _ => (code, false), };
 
         private static (Code, List<CbVal>) ArrLoopBody(Code code, Func<Code, (Code, bool)> endf)
@@ -221,7 +221,7 @@ namespace CbStyles.Cbon.Parser
             '{' => ObjLoopBody(code.Tail, ObjLoopEndf),
             _ => null,
         };
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static (Code, bool) ObjLoopEndf(Code code) => code.First switch { '}' => (code.Tail, true), _ => (code, false), };
         private static (Code, Dictionary<string, CbVal>) ObjLoopBody(Code code, Func<Code, (Code, bool)> endf)
         {
@@ -1046,17 +1046,17 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool NotWord(char c) => c switch
         {
             '#' or '"' or '\'' or '(' or ')' or ',' or ':' or ';' or '=' or '[' or ']' or '{' or '}' => true,
             _ => char.IsWhiteSpace(c),
         };
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool NotUnderscore(char c) => c != '_';
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static nuint FindIndex(Code code, nuint index, Func<char, bool> f)
         {
             loop: switch (code[index])
@@ -1082,19 +1082,19 @@ namespace CbStyles.Cbon.Parser
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsHex(char c) => c is (>= '0' and <= '9') or (>= 'a' and <= 'z') or (>= 'A' and <= 'Z');
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool NotHex(char c) => !(c is (>= '0' and <= '9') or (>= 'a' and <= 'z') or (>= 'A' and <= 'Z'));
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool NotHexWithUnderscore(char c) => !(c is (>= '0' and <= '9') or (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or '_');
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool NotNumBody(char c) => !(c is (>= '0' and <= '9') or '_');
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsNum(char c) => c is >= '0' and <= '9';
     }
 }

@@ -240,7 +240,7 @@ namespace CbStyles.Cbon
 
         public static bool operator !=(CbVal left, CbVal right) => !(left == right);
 
-        #endregion
+#endregion
 
         private static ArgumentException KindErr(string type) => new ArgumentException($"Type Error, This {nameof(CbVal)} type is not ${type}");
 

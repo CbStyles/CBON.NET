@@ -54,7 +54,7 @@ namespace CbStyles.Cbon.Unsafe
         public Sliced<T> SliceTo(nuint end) => end > len ? throw new ArgumentOutOfRangeException()
             : new Sliced<T>(ptr, end, origin);
 
-        private Span<T> ToSpan() => new Span<T>(ptr, (int)len);
+        private ReadOnlySpan<T> ToSpan() => new ReadOnlySpan<T>(ptr, (int)len);
 
         public T[] ToArray() => ToSpan().ToArray();
 

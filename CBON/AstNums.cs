@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CbStyles.Cbon
 {
@@ -18,12 +14,16 @@ namespace CbStyles.Cbon
             public short? i16 = null;
             public int? i32 = null;
             public long? i64 = null;
+            #if !NETSTANDARD
             public nint? isize = null;
+            #endif
             public byte? u8 = null;
             public ushort? u16 = null;
             public uint? u32 = null;
             public ulong? u64 = null;
+            #if !NETSTANDARD
             public nuint? usize = null;
+            #endif
             public float? f32 = null;
             public double? f64 = null;
 
@@ -53,12 +53,14 @@ namespace CbStyles.Cbon
                 self.i64 = v;
                 return v;
             }
+            #if !NETSTANDARD
             public static nint Set(ref NumCache? self, nint v)
             {
                 self ??= new NumCache();
                 self.isize = v;
                 return v;
             }
+            #endif
             public static byte Set(ref NumCache? self, byte v)
             {
                 self ??= new NumCache();
@@ -83,12 +85,14 @@ namespace CbStyles.Cbon
                 self.u64 = v;
                 return v;
             }
+            #if !NETSTANDARD
             public static nuint Set(ref NumCache? self, nuint v)
             {
                 self ??= new NumCache();
                 self.usize = v;
                 return v;
             }
+            #endif
             public static float Set(ref NumCache? self, float v)
             {
                 self ??= new NumCache();
@@ -131,11 +135,13 @@ namespace CbStyles.Cbon
             return NumCache.Set(ref numCache, I64());
         }
 
+        #if !NETSTANDARD
         public nint ISizeCached()
         {
             if (numCache?.isize != null) return numCache!.isize.Value;
             return NumCache.Set(ref numCache, ISize());
         }
+        #endif
 
         public byte U8Cached()
         {
@@ -161,12 +167,13 @@ namespace CbStyles.Cbon
             return NumCache.Set(ref numCache, U64());
         }
 
+        #if !NETSTANDARD
         public nuint USizeCached()
         {
             if (numCache?.usize != null) return numCache!.usize.Value;
             return NumCache.Set(ref numCache, USize());
         }
-
+        #endif
         public float F32Cached()
         {
             if (numCache?.f32 != null) return numCache!.f32.Value;
@@ -215,6 +222,7 @@ namespace CbStyles.Cbon
         public long I64(IFormatProvider provider) => IsNumber ? long.Parse(str!, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
         public long I64(NumberStyles styles, IFormatProvider provider) => IsNumber ? long.Parse(str!, styles, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
 
+        #if !NETSTANDARD
         public nint ISize() =>
             IsNum ? nint.Parse(str!, NumberStyles.Any) :
             IsHex ? nint.Parse(str!, NumberStyles.HexNumber) :
@@ -222,6 +230,7 @@ namespace CbStyles.Cbon
         public nint ISize(NumberStyles styles) => IsNumber ? nint.Parse(str!, styles) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
         public nint ISize(IFormatProvider provider) => IsNumber ? nint.Parse(str!, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
         public nint ISize(NumberStyles styles, IFormatProvider provider) => IsNumber ? nint.Parse(str!, styles, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+        #endif
 
         public byte U8() =>
             IsNum ? byte.Parse(str!, NumberStyles.Any) :
@@ -255,6 +264,7 @@ namespace CbStyles.Cbon
         public ulong U64(IFormatProvider provider) => IsNumber ? ulong.Parse(str!, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
         public ulong U64(NumberStyles styles, IFormatProvider provider) => IsNumber ? ulong.Parse(str!, styles, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
 
+        #if !NETSTANDARD
         public nuint USize() =>
             IsNum ? nuint.Parse(str!, NumberStyles.Any) :
             IsHex ? nuint.Parse(str!, NumberStyles.HexNumber) :
@@ -262,6 +272,7 @@ namespace CbStyles.Cbon
         public nuint USize(NumberStyles styles) => IsNumber ? nuint.Parse(str!, styles) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
         public nuint USize(IFormatProvider provider) => IsNumber ? nuint.Parse(str!, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
         public nuint USize(NumberStyles styles, IFormatProvider provider) => IsNumber ? nuint.Parse(str!, styles, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+        #endif
 
         public float F32() =>
             IsNum ? float.Parse(str!, NumberStyles.Any) :
@@ -343,6 +354,7 @@ namespace CbStyles.Cbon
             return false;
         }
 
+        #if !NETSTANDARD
         public bool TryISizeCached(out nint result)
         {
             if (numCache?.isize != null)
@@ -357,6 +369,7 @@ namespace CbStyles.Cbon
             }
             return false;
         }
+        #endif
 
         public bool TryU8Cached(out byte result)
         {
@@ -417,7 +430,7 @@ namespace CbStyles.Cbon
             }
             return false;
         }
-
+        #if !NETSTANDARD
         public bool TryUSizeCached(out nuint result)
         {
             if (numCache?.usize != null)
@@ -432,6 +445,7 @@ namespace CbStyles.Cbon
             }
             return false;
         }
+        #endif
 
         public bool TryF32Cached(out float result)
         {
@@ -517,6 +531,7 @@ namespace CbStyles.Cbon
             OutDefault(out result);
         public bool TryI64(NumberStyles styles, IFormatProvider provider, out long result) => IsNumber ? long.TryParse(str!, styles, provider, out result) : OutDefault(out result);
 
+        #if !NETSTANDARD
         public bool TryISize(out nint result) =>
             IsNum ? nint.TryParse(str!, NumberStyles.Any, null, out result) :
             IsHex ? nint.TryParse(str!, NumberStyles.HexNumber, null, out result) :
@@ -527,7 +542,7 @@ namespace CbStyles.Cbon
             IsHex ? nint.TryParse(str!, NumberStyles.HexNumber, provider, out result) :
             OutDefault(out result);
         public bool TryISize(NumberStyles styles, IFormatProvider provider, out nint result) => IsNumber ? nint.TryParse(str!, styles, provider, out result) : OutDefault(out result);
-
+        #endif
         public bool TryU8(out byte result) =>
             IsNum ? byte.TryParse(str!, NumberStyles.Any, null, out result) :
             IsHex ? byte.TryParse(str!, NumberStyles.HexNumber, null, out result) :
@@ -572,6 +587,7 @@ namespace CbStyles.Cbon
             OutDefault(out result);
         public bool TryU64(NumberStyles styles, IFormatProvider provider, out ulong result) => IsNumber ? ulong.TryParse(str!, styles, provider, out result) : OutDefault(out result);
 
+        #if !NETSTANDARD
         public bool TryUSize(out nuint result) =>
             IsNum ? nuint.TryParse(str!, NumberStyles.Any, null, out result) :
             IsHex ? nuint.TryParse(str!, NumberStyles.HexNumber, null, out result) :
@@ -582,6 +598,7 @@ namespace CbStyles.Cbon
             IsHex ? nuint.TryParse(str!, NumberStyles.HexNumber, provider, out result) :
             OutDefault(out result);
         public bool TryUSize(NumberStyles styles, IFormatProvider provider, out nuint result) => IsNumber ? nuint.TryParse(str!, styles, provider, out result) : OutDefault(out result);
+        #endif
 
         public bool TryF32(out float result) =>
             IsNum ? float.TryParse(str!, NumberStyles.Any, null, out result) :
@@ -605,7 +622,7 @@ namespace CbStyles.Cbon
             OutDefault(out result);
         public bool TryF64(NumberStyles styles, IFormatProvider provider, out double result) => IsNumber ? double.TryParse(str!, styles, provider, out result) : OutDefault(out result);
 
-        #endregion
+#endregion
 
         #region Parse Cached
 
@@ -641,6 +658,7 @@ namespace CbStyles.Cbon
             return v;
         }
 
+        #if !NETSTANDARD
         public nint? TryISizeCached()
         {
             if (numCache?.isize != null) return numCache!.isize.Value;
@@ -648,6 +666,7 @@ namespace CbStyles.Cbon
             if (v != null) NumCache.Set(ref numCache, v.Value);
             return v;
         }
+        #endif
 
         public byte? TryU8Cached()
         {
@@ -681,6 +700,7 @@ namespace CbStyles.Cbon
             return v;
         }
 
+        #if !NETSTANDARD
         public nuint? TryUSizeCached()
         {
             if (numCache?.usize != null) return numCache!.usize.Value;
@@ -688,6 +708,7 @@ namespace CbStyles.Cbon
             if (v != null) NumCache.Set(ref numCache, v.Value);
             return v;
         }
+        #endif
 
         public float? TryF32Cached()
         {
@@ -729,10 +750,12 @@ namespace CbStyles.Cbon
         public long? TryI64(IFormatProvider provider) => TryI64(provider, out var result) ? result : null;
         public long? TryI64(NumberStyles styles, IFormatProvider provider) => TryI64(styles, provider, out var result) ? result : null;
 
+        #if !NETSTANDARD
         public nint? TryISize() => TryISize(out var result) ? result : null;
         public nint? TryISize(NumberStyles styles) => TryISize(styles, out var result) ? result : null;
         public nint? TryISize(IFormatProvider provider) => TryISize(provider, out var result) ? result : null;
         public nint? TryISize(NumberStyles styles, IFormatProvider provider) => TryISize(styles, provider, out var result) ? result : null;
+        #endif
 
         public byte? TryU8() => TryU8(out var result) ? result : null;
         public byte? TryU8(NumberStyles styles) => TryU8(styles, out var result) ? result : null;
@@ -754,10 +777,12 @@ namespace CbStyles.Cbon
         public ulong? TryU64(IFormatProvider provider) => TryU64(provider, out var result) ? result : null;
         public ulong? TryU64(NumberStyles styles, IFormatProvider provider) => TryU64(styles, provider, out var result) ? result : null;
 
+        #if !NETSTANDARD
         public nuint? TryUSize() => TryUSize(out var result) ? result : null;
         public nuint? TryUSize(NumberStyles styles) => TryUSize(styles, out var result) ? result : null;
         public nuint? TryUSize(IFormatProvider provider) => TryUSize(provider, out var result) ? result : null;
         public nuint? TryUSize(NumberStyles styles, IFormatProvider provider) => TryUSize(styles, provider, out var result) ? result : null;
+        #endif
 
         public float? TryF32() => TryF32(out var result) ? result : null;
         public float? TryF32(NumberStyles styles) => TryF32(styles, out var result) ? result : null;

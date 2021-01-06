@@ -139,5 +139,44 @@ namespace TestParser
             });
         }
 
+        [Test]
+        public void TestWord14()
+        {
+            var code = "1234567e-123";
+            Parser.RunInReader(code, code => {
+                var r = Parser.Word(code).Value.Item2;
+                Assert.AreEqual(CbVal.NewNum("1234567e-123"), r);
+            });
+        }
+
+        [Test]
+        public void TestWord15()
+        {
+            var code = "7efed01d-c654-414e-be95-bf6cf66a6927";
+            Parser.RunInReader(code, code => {
+                var r = Parser.Word(code).Value.Item2;
+                Assert.AreEqual(CbVal.NewUUID("7efed01d-c654-414e-be95-bf6cf66a6927"), r);
+            });
+        }
+
+        [Test]
+        public void TestWord16()
+        {
+            var code = "1234567e-1234-1234-1234-123456789abc";
+            Parser.RunInReader(code, code => {
+                var r = Parser.Word(code).Value.Item2;
+                Assert.AreEqual(CbVal.NewUUID("1234567e-1234-1234-1234-123456789abc"), r);
+            });
+        }
+
+        [Test]
+        public void TestWord17()
+        {
+            var code = "12345e-1234-1234-1234-123456789abc";
+            Parser.RunInReader(code, code => {
+                var r = Parser.Word(code).Value.Item2;
+                Assert.AreEqual(CbVal.NewStr("12345e-1234-1234-1234-123456789abc"), r);
+            });
+        }
     }
 }

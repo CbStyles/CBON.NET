@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 namespace CbStyles.Cbon
 {
     [Serializable]
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public partial struct CbVal : IEquatable<CbVal>
     {
         public enum CbType
@@ -189,6 +190,7 @@ namespace CbStyles.Cbon
         public static CbVal NewBool(bool val) => new CbVal(val);
         public static CbVal NewDate(string date) => new CbVal(DateTime.Parse(date));
         public static CbVal NewDate(DateTime date) => new CbVal(date);
+        public static CbVal NewUUID(string uuid) => new CbVal(new Guid(uuid));
         public static CbVal NewUUID(Guid uuid) => new CbVal(uuid);
         public static CbVal NewNum(string raw) => new CbVal(CbType.Num, raw.Replace("_", ""));
         public static CbVal NewHex(string raw) => new CbVal(CbType.Hex, raw);
@@ -241,6 +243,38 @@ namespace CbStyles.Cbon
         #endregion
 
         private static ArgumentException KindErr(string type) => new ArgumentException($"Type Error, This {nameof(CbVal)} type is not ${type}");
+
+        private string GetDebuggerDisplay() => $"{nameof(CbVal)}:{TypeString()}: {ToString()}";
+
+        public string TypeString() => Type switch
+        {
+            CbType.Null => "Null",
+            CbType.Bool => "Bool",
+            CbType.Num => "Num",
+            CbType.Hex => "Hex",
+            CbType.Date => "Date",
+            CbType.UUID => "UUID",
+            CbType.Str => "Str",
+            CbType.Arr => "Arr",
+            CbType.Obj => "Obj",
+            CbType.Union => "Union",
+            _ => throw new NotImplementedException("never"),
+        };
+
+        public override string ToString() => Type switch
+        {
+            CbType.Null => "null",
+            CbType.Bool => data.boolean.ToString(),
+            CbType.Num => str!,
+            CbType.Hex => $"0x{str!}",
+            CbType.Date => data.date.ToString(),
+            CbType.UUID => data.uuid.ToString(),
+            CbType.Str => $"\"{str!}\"",// todo escape quote
+            CbType.Arr => "todo",
+            CbType.Obj => "todo",
+            CbType.Union => union!.ToString(),
+            _ => throw new NotImplementedException("never"),
+        };
     }
 
     [Serializable]

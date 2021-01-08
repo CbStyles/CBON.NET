@@ -46,11 +46,11 @@ namespace CbStyles.Cbon.Serializer
             Options = options;
         }
     }
-    public readonly struct SeStack
+    public struct SeStack
     {
         internal readonly SeCtx ctx;
         public readonly nuint tab;
-        public readonly bool linefirst;
+        public bool linefirst;
 
         internal SeStack(SeCtx ctx)
         {
@@ -87,7 +87,7 @@ namespace CbStyles.Cbon.Serializer
                 nstack.DoTab();
                 return nstack;
             }
-            return this;
+            return Body;
         }
 
         public void DoFinishObjItem()
@@ -95,6 +95,7 @@ namespace CbStyles.Cbon.Serializer
             if (Options.Style.HasFlag(SeStyle.WrapObjItem))
             {
                 ctx.sb.Append('\n');
+                linefirst = true;
                 DoTab();
             }
         }

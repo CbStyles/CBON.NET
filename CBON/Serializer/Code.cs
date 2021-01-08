@@ -96,14 +96,18 @@ namespace CbStyles.Cbon.Serializer
         private class TestC2
         {
             public string a;
+            public string b { get; set; }
         }
 
         private class TestC1
         {
             ISeDe sede1;
-            public TestC1(ISeDe sede1)
+            ISeDe sede2;
+
+            public TestC1(ISeDe sede1, ISeDe sede2)
             {
                 this.sede1 = sede1;
+                this.sede2 = sede2;
             }
 
             public static void Use(object obj, SeStack ctx, TestC1 data)
@@ -111,9 +115,17 @@ namespace CbStyles.Cbon.Serializer
                 var self = (TestC2)obj;
                 ctx.DoTab();
                 var body = ctx.DoObjStart();
-                ctx.Append("a ");
+
+                body.DoTab();
+                body.Append("a ");
                 data.sede1.Se(self.a, body);
-                ctx.DoFinishObjItem();
+                body.DoFinishObjItem();
+
+                body.DoTab();
+                body.Append("b ");
+                data.sede2.Se(self.b, body);
+                body.DoFinishObjItem();
+
                 ctx.DoObjEnd();
             }
         }
@@ -143,20 +155,23 @@ namespace CbStyles.Cbon.Serializer
         {
             var objname = $"{Guid.NewGuid():N}.{type.FullName}_{type.GUID:N}";
 
-            obj.se = GenCodesObjectSe(objname, type);
+            GenCodesObject(objname, type, obj);
 
             obj.generated = true;
         }
 
-        private static Action<object, SeStack> GenCodesObjectSe(string objname, Type t)
+        private static void GenCodesObject(string objname, Type t, SeDeObj obj)
         {
-            var items = new Dictionary<string, ISeDe>();
+            var items = new Dictionary<string, (ISeDe obj, Action<ILGenerator> ldfld)>();
             GetMembers(items, t);
-            var objid = ComObjId(items);
-            var dataClass = GenDataClass(objid);
+            var objIds = ComObjId(items);
+            var dataClass = GenDataClass(objIds);
+            var dataObj = BuildDataClass(dataClass.classT, dataClass.ci, dataClass.objs);
+            var se = GenSeFunc(objname, t, dataClass.classT, items, objIds, dataClass.fis, dataObj);
+            obj.se = se;
 
 
-            static void GetMembers(Dictionary<string, ISeDe> items, Type t)
+            static void GetMembers(Dictionary<string, (ISeDe obj, Action<ILGenerator> ldfld)> items, Type t)
             {
                 var cb = t.GetCustomAttribute<CbonAttribute>() ?? CbonAttribute.Default;
                 if (cb.Member != 0)
@@ -172,7 +187,9 @@ namespace CbStyles.Cbon.Serializer
                             if (fcb.Ignore || field.GetCustomAttribute<NonSerializedAttribute>() != null) continue;
                             var name = SeStrQuot(fcb.Name ?? field.Name);
                             var sede = GetCodeInner(field.FieldType);
-                            items.Add(name, sede);
+                            items.Add(name, (sede, (ILGenerator il) => {
+                                il.Emit(OpCodes.Ldfld, field);
+                            }));
                         }
                     }
                     if (cb.Member.HasFlag(CbonMember.Properties))
@@ -187,18 +204,20 @@ namespace CbStyles.Cbon.Serializer
                             if (pcb.Ignore || prop.GetCustomAttribute<NonSerializedAttribute>() != null) continue;
                             var name = SeStrQuot(pcb.Name ?? prop.Name);
                             var sede = GetCodeInner(prop.PropertyType);
-                            items.Add(name, sede);
+                            items.Add(name, (sede, (ILGenerator il) => {
+                                il.Emit(OpCodes.Callvirt, prop.GetMethod!);
+                            }));
                         }
                     }
                 }
             }
 
-            static Dictionary<ISeDe, ulong> ComObjId(Dictionary<string, ISeDe> items)
+            static Dictionary<ISeDe, ulong> ComObjId(Dictionary<string, (ISeDe obj, Action<ILGenerator> ldfld)> items)
             {
                 ulong i = 0u;
                 var objid = new Dictionary<ISeDe, ulong>();
 
-                foreach (var obj in items.Values)
+                foreach (var (obj, _) in items.Values)
                 {
                     if (objid.ContainsKey(obj)) continue;
                     objid.Add(obj, i);
@@ -207,7 +226,7 @@ namespace CbStyles.Cbon.Serializer
                 return objid;
             }
             
-            static (Type, ConstructorInfo, (FieldInfo, Type, ulong, string)[]) GenDataClass(Dictionary<ISeDe, ulong> objs)
+            static (Type classT, ConstructorInfo ci, Dictionary<ulong, (FieldInfo f, Type t, string name)> fis, ISeDe[] objs) GenDataClass(Dictionary<ISeDe, ulong> objs)
             {
                 var name = $"{Namespace}.CODE.SeDe.Data_{Guid.NewGuid():N}";
                 var tb = module.DefineType(name, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Sealed, typeof(object));
@@ -216,18 +235,18 @@ namespace CbStyles.Cbon.Serializer
                     var t = typeof(ISeDe);
                     var name = $"sede{v.Value}";
                     var fb = tb.DefineField($"sede{v.Value}", typeof(ISeDe), FieldAttributes.Public);
-                    return ((FieldInfo)fb, t, v.Value, name);
+                    return (fb, t, v.Value, name, v.Key);
                 }).ToArray();
 
                 var ctor = tb.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, fbs.Select(static v => v.t).ToArray());
-                foreach (var (_, _, i, n) in fbs)
+                foreach (var (_, _, i, n, _) in fbs)
                 {
                     ctor.DefineParameter((int)i + 1, ParameterAttributes.None, n);
                 }
                 var il = ctor.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Call, typeof(object).GetConstructor(Type.EmptyTypes)!);
-                foreach (var (fb, _, i, _) in fbs)
+                foreach (var (fb, _, i, _, _) in fbs)
                 {
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldarg_S, (byte)i + 1);
@@ -235,55 +254,85 @@ namespace CbStyles.Cbon.Serializer
                 }
                 il.Emit(OpCodes.Ret);
 
-                return (tb.CreateType()!, ctor, fbs);
+                var typ = tb.CreateType()!;
+                var fis = fbs.ToDictionary(v => v.Value, v => (typ.GetField(v.fb.Name)!, v.t, v.name));
+                var args = fbs.Select(v => v.Key).ToArray()!;
+
+                return (tb.CreateType()!, ctor, fis, args);
             }
 
-            var se = new DynamicMethod($"{Namespace}.CODE.SeDe.{objname}_Se", typeof(void), new Type[] { typeof(object), typeof(SeStack) }, t, true);
-            se.DefineParameter(0, ParameterAttributes.None, "self");
-            se.DefineParameter(1, ParameterAttributes.None, "ctx");
-            var il = se.GetILGenerator();
+            static object BuildDataClass(Type classT, ConstructorInfo ci, IEnumerable<ISeDe> objs)
+            {
+                var ctor = classT.GetConstructor(ci.GetParameters().Select(v => v.ParameterType).ToArray())!;
+                var obj = ctor.Invoke(objs.ToArray());
+                return obj;
+            }
 
-            il.Emit(OpCodes.Ldarga_S, (byte)1);
-            il.EmitCall(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.DoTab))!, null);
+            static Action<object, SeStack> GenSeFunc(string objname, Type t, Type dataT, Dictionary<string, (ISeDe obj, Action<ILGenerator> ldfld)> fs, Dictionary<ISeDe, ulong> objIds, Dictionary<ulong, (FieldInfo f, Type t, string name)> fis, object dataObj)
+            {
+                var se = new DynamicMethod($"{Namespace}.CODE.SeDe.{objname}_Se", typeof(void), new Type[] { typeof(object), typeof(SeStack), dataT }, t, true);
+                se.DefineParameter(0, ParameterAttributes.None, "obj");
+                se.DefineParameter(1, ParameterAttributes.None, "ctx");
+                se.DefineParameter(2, ParameterAttributes.None, "data"); // dataT
+                var il = se.GetILGenerator();
 
-            //if (cb.Member == 0)
-            //{
-            //    il.Emit(OpCodes.Ldarga_S, (byte)1);
-            //    il.Emit(OpCodes.Ldstr, "{}");
-            //    il.EmitCall(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.Append), new Type[] { typeof(string) })!, null);
-            //} 
-            //else
-            //{
-            //    il.Emit(OpCodes.Ldarga_S, (byte)1);
-            //    il.Emit(OpCodes.Ldstr, "{");
-            //    il.EmitCall(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.Append), new Type[] { typeof(string) })!, null);
+                il.DeclareLocal(t);                 // self
+                il.DeclareLocal(typeof(SeStack));   // body
 
-            //    if (cb.Member.HasFlag(CbonMember.Fields))
-            //    {
-            //        var fields = t.GetFields(BindingFlags.Instance | (cb.Member.HasFlag(CbonMember.Public) ? BindingFlags.Public : 0) | (cb.Member.HasFlag(CbonMember.Private) ? BindingFlags.NonPublic : 0));
-            //        foreach (var field in fields)
-            //        {
-            //            if (field.GetCustomAttribute<CbonIgnoreAttribute>() != null) continue;
-            //            if (cb.Member.HasFlag(CbonMember.OptIn)) if (field.GetCustomAttribute<CbonMemberAttribute>() == null && field.GetCustomAttribute<DataContractAttribute>() == null) continue;
-            //            var fcb = field.GetCustomAttribute<CbonMemberAttribute>() ?? CbonMemberAttribute.Default;
-            //            if (fcb.Ignore || field.GetCustomAttribute<NonSerializedAttribute>() != null) continue;
-            //            var name = SeStrQuot(fcb.Name ?? field.Name);
+                // XXX self = (XXX)obj
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Castclass, t);
+                il.Emit(OpCodes.Stloc_0);
 
-            //            il.Emit(OpCodes.Ldarga_S, (byte)1);
-            //            il.Emit(OpCodes.Ldstr, $" {name} : null ");
-            //            il.EmitCall(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.Append), new Type[] { typeof(string) })!, null);
-            //        }
-            //    }
+                // ctx.DoTab();
+                il.Emit(OpCodes.Ldarga_S, (byte)1);
+                il.EmitCall(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.DoTab))!, null);
 
-            //    il.Emit(OpCodes.Ldarga_S, (byte)1);
-            //    il.EmitCall(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.DoTab))!, null);
-            //    il.Emit(OpCodes.Ldarga_S, (byte)1);
-            //    il.Emit(OpCodes.Ldstr, "}");
-            //    il.EmitCall(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.Append), new Type[] { typeof(string) })!, null);
-            //}
+                //// body = DoObjStart();
+                il.Emit(OpCodes.Ldarga_S, (byte)1);
+                il.Emit(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.DoObjStart))!);
+                il.Emit(OpCodes.Stloc_1);
 
-            il.Emit(OpCodes.Ret);
-            return se.CreateDelegate<Action<object, SeStack>>();
+                foreach (var (key, (obj, ldfld)) in fs)
+                {
+                    // body.DoTab();
+                    il.Emit(OpCodes.Ldloca_S, (byte)1);
+                    il.Emit(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.DoTab))!);
+
+                    // body.Append($"{f.key} ");
+                    il.Emit(OpCodes.Ldloca_S, (byte)1);
+                    il.Emit(OpCodes.Ldstr, $"{key} ");
+                    il.Emit(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.Append), new Type[] { typeof(string) })!);
+
+                    var ofi = objIds[obj];
+                    var fi = fis[ofi];
+
+                    // data.seden.Se(self.xxx, body);
+                    il.Emit(OpCodes.Ldarg_2);
+                    il.Emit(OpCodes.Ldfld, fi.f);
+                    il.Emit(OpCodes.Ldloc_0);
+                    ldfld(il);
+                    il.Emit(OpCodes.Ldloc_1);
+                    il.Emit(OpCodes.Callvirt, typeof(ISeDe).GetMethod(nameof(ISeDe.Se))!);
+
+                    // data.DoFinishObjItem();
+                    il.Emit(OpCodes.Ldloca_S, (byte)1);
+                    il.Emit(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.DoFinishObjItem))!);
+                }
+
+                // ctx.DoObjEnd();
+                il.Emit(OpCodes.Ldarga_S, (byte)1);
+                il.Emit(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.DoObjEnd))!);
+
+                il.Emit(OpCodes.Ret);
+
+                var d = se.CreateDelegate(typeof(Action<,,>).MakeGenericType(typeof(object), typeof(SeStack), dataT));
+                return (object obj, SeStack ctx) =>
+                {
+                    d.DynamicInvoke(obj, ctx, dataObj);
+                };
+            }
+
         }
 
         private static void GenCodesObjectDe(Type type, TypeBuilder tb, MethodBuilder mb)

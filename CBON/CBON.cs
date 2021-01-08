@@ -1,4 +1,10 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("TestAst")]
+[assembly: InternalsVisibleTo("TestParser")]
+[assembly: InternalsVisibleTo("TestSerializer")]
+[assembly: InternalsVisibleTo("TestSlice")]
 
 namespace CbStyles.Cbon
 {

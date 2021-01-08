@@ -11,7 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestSlice", "TestSlice\Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestAst", "TestAst\TestAst.csproj", "{55D25082-673D-408F-8C98-385748661FA5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestParser", "TestParser\TestParser.csproj", "{C79DF5FE-AB09-4A6C-AA36-944131BBC633}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestParser", "TestParser\TestParser.csproj", "{C79DF5FE-AB09-4A6C-AA36-944131BBC633}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestSerializer", "TestSerializer\TestSerializer.csproj", "{442F6105-7FD4-4895-B946-DE20112C6A7A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,6 +37,10 @@ Global
 		{C79DF5FE-AB09-4A6C-AA36-944131BBC633}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C79DF5FE-AB09-4A6C-AA36-944131BBC633}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C79DF5FE-AB09-4A6C-AA36-944131BBC633}.Release|Any CPU.Build.0 = Release|Any CPU
+		{442F6105-7FD4-4895-B946-DE20112C6A7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{442F6105-7FD4-4895-B946-DE20112C6A7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{442F6105-7FD4-4895-B946-DE20112C6A7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{442F6105-7FD4-4895-B946-DE20112C6A7A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -43,6 +49,7 @@ Global
 		{364FDC24-EDFA-4004-9020-5F6FBE269920} = {52A48F78-4FCA-4E36-B522-A389BE31B00D}
 		{55D25082-673D-408F-8C98-385748661FA5} = {52A48F78-4FCA-4E36-B522-A389BE31B00D}
 		{C79DF5FE-AB09-4A6C-AA36-944131BBC633} = {52A48F78-4FCA-4E36-B522-A389BE31B00D}
+		{442F6105-7FD4-4895-B946-DE20112C6A7A} = {52A48F78-4FCA-4E36-B522-A389BE31B00D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {91135298-7F98-441A-A87A-36712F16071A}

@@ -17,10 +17,10 @@ namespace CbStyles.Cbon
 
 namespace CbStyles.Cbon.Parser
 {
-    public static class Parser
+    internal static class Parser
     {
 
-        public unsafe static List<CbVal> Parse(string code)
+        internal unsafe static List<CbVal> Parse(string code)
         {
             if (code.Length == 0) return new List<CbVal>();
             try
@@ -37,7 +37,7 @@ namespace CbStyles.Cbon.Parser
             }
         }
 
-        public unsafe static List<CbVal> Parse(string code, CBONParserOptions options)
+        internal unsafe static List<CbVal> Parse(string code, CBONParserOptions options)
         {
             var RestoreSrcPos = options.RestoreSrcPos;
 
@@ -64,19 +64,19 @@ namespace CbStyles.Cbon.Parser
             }
         }
 
-        public unsafe static List<CbVal> Parse<T>(T source) where T : IEnumerable<char>
+        internal unsafe static List<CbVal> Parse<T>(T source) where T : IEnumerable<char>
         {
             var code = source.ToArray();
             return Parse(code);
         }
 
-        public unsafe static List<CbVal> Parse<T>(T source, CBONParserOptions options) where T : IEnumerable<char>
+        internal unsafe static List<CbVal> Parse<T>(T source, CBONParserOptions options) where T : IEnumerable<char>
         {
             var code = source.ToArray();
             return Parse(code, options);
         }
 
-        public unsafe static List<CbVal> Parse(char[] code)
+        internal unsafe static List<CbVal> Parse(char[] code)
         {
             if (code.LongLength == 0) return new List<CbVal>();
             try
@@ -93,7 +93,7 @@ namespace CbStyles.Cbon.Parser
             }
         }
 
-        public unsafe static List<CbVal> Parse(char[] code, CBONParserOptions options)
+        internal unsafe static List<CbVal> Parse(char[] code, CBONParserOptions options)
         {
             var RestoreSrcPos = options.RestoreSrcPos;
 
@@ -125,7 +125,7 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
-        public static unsafe R? RunInReader<T, R>(T source, Func<Code, R> f) where T : IEnumerable<char>
+        internal static unsafe R? RunInReader<T, R>(T source, Func<Code, R> f) where T : IEnumerable<char>
         {
             var code = source.ToArray();
             if (code.LongLength == 0) return default;
@@ -143,7 +143,7 @@ namespace CbStyles.Cbon.Parser
                 throw new ParserException(e.Message, e.at, p, e);
             }
         }
-        public static unsafe void RunInReader<T>(T source, Action<Code> f) where T : IEnumerable<char>
+        internal static unsafe void RunInReader<T>(T source, Action<Code> f) where T : IEnumerable<char>
         {
             var code = source.ToArray();
             if (code.LongLength == 0) return;
@@ -165,7 +165,7 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
-        public static (Code, List<CbVal>)? ArrLoop(Code code) => code.First switch
+        internal static (Code, List<CbVal>)? ArrLoop(Code code) => code.First switch
         {
             '[' => ArrLoopBody(code.Tail, ArrLoopEndf),
             _ => null,
@@ -216,7 +216,7 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
-        public static (Code, Dictionary<string, CbVal>)? ObjLoop(Code code) => code.First switch
+        internal static (Code, Dictionary<string, CbVal>)? ObjLoop(Code code) => code.First switch
         {
             '{' => ObjLoopBody(code.Tail, ObjLoopEndf),
             _ => null,
@@ -272,7 +272,7 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
-        public static (Code, string)? Str(Code code) => code.First switch
+        internal static (Code, string)? Str(Code code) => code.First switch
         {
             '"' => StrBody(code, '"', 1),
             '\'' => StrBody(code, '\'', 1),
@@ -355,7 +355,7 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
-        public static Code? Space(Code code) => code.First switch
+        internal static Code? Space(Code code) => code.First switch
         {
             char c when char.IsWhiteSpace(c) => code.Slice(FindIndex(code, 1, NotWhiteSpace)),
             _ => null,
@@ -368,7 +368,7 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
-        public static (Code, CbVal)? Word(Code code)
+        internal static (Code, CbVal)? Word(Code code)
         {
             nuint index;
             switch (code.First)
@@ -578,8 +578,9 @@ namespace CbStyles.Cbon.Parser
                 switch (code[index])
                 {
                     case null: case char c when NotWord(c):
-                        var s = code.SliceTo(index).ToString();
-                        return (code.Slice(index), CbVal.NewUUID(new Guid(s)));
+                        var s = code.SliceTo(index);
+                        var u = Guid.Parse(s.ToSpan());
+                        return (code.Slice(index), CbVal.NewUUID(u));
                     default: goto word;
                 }
             }
@@ -964,8 +965,9 @@ namespace CbStyles.Cbon.Parser
                 }
             DateEnd:
                 {
-                    var s = code.SliceTo(index).ToString();
-                    return (code.Slice(index), CbVal.NewDate(s));
+                    var s = code.SliceTo(index);
+                    var d = DateTime.Parse(s.ToSpan());
+                    return (code.Slice(index), CbVal.NewDate(d));
                 }
             }
             #endregion
@@ -989,7 +991,7 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
-        public static Code? Comma(Code code) => code.First switch
+        internal static Code? Comma(Code code) => code.First switch
         {
             ',' or ';' => code.Tail,
             _ => null,
@@ -997,7 +999,7 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
-        public static (Code, string)? Key(Code code)
+        internal static (Code, string)? Key(Code code)
         {
             switch (code.First)
             {
@@ -1012,7 +1014,7 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
-        public static Code? Split(Code code) => code.First switch
+        internal static Code? Split(Code code) => code.First switch
         {
             ':' or '=' => code.Tail,
             _ => null,
@@ -1020,7 +1022,7 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
-        public static (Code, CbUnion)? Union(Code code)
+        internal static (Code, CbUnion)? Union(Code code)
         {
             switch (code.First)
             {

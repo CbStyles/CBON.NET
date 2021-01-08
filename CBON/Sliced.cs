@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace CbStyles.Cbon.Unsafe
 {
-    public unsafe readonly struct Sliced<T> : IEquatable<Sliced<T>>, IEnumerable<T> where T : unmanaged
+    internal unsafe readonly struct Sliced<T> : IEquatable<Sliced<T>>, IEnumerable<T> where T : unmanaged
     {
         private readonly T* ptr;
         private readonly nuint len;
@@ -54,7 +54,7 @@ namespace CbStyles.Cbon.Unsafe
         public Sliced<T> SliceTo(nuint end) => end > len ? throw new ArgumentOutOfRangeException()
             : new Sliced<T>(ptr, end, origin);
 
-        private ReadOnlySpan<T> ToSpan() => new ReadOnlySpan<T>(ptr, (int)len);
+        public ReadOnlySpan<T> ToSpan() => new ReadOnlySpan<T>(ptr, (int)len);
 
         public T[] ToArray() => ToSpan().ToArray();
 

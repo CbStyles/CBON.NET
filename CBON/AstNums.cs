@@ -274,6 +274,16 @@ namespace CbStyles.Cbon
         public nuint USize(NumberStyles styles, IFormatProvider provider) => IsNumber ? nuint.Parse(str!, styles, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
         #endif
 
+        #if !NETSTANDARD
+        public Half F16() =>
+            IsNum ? Half.Parse(str!, NumberStyles.Any) :
+            IsHex ? Half.Parse(str!, NumberStyles.HexNumber) :
+            throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+        public Half F16(NumberStyles styles) => IsNumber ? Half.Parse(str!, styles) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+        public Half F16(IFormatProvider provider) => IsNumber ? Half.Parse(str!, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+        public Half F16(NumberStyles styles, IFormatProvider provider) => IsNumber ? Half.Parse(str!, styles, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+        #endif
+
         public float F32() =>
             IsNum ? float.Parse(str!, NumberStyles.Any) :
             IsHex ? float.Parse(str!, NumberStyles.HexNumber) :
@@ -289,6 +299,14 @@ namespace CbStyles.Cbon
         public double F64(NumberStyles styles) => IsNumber ? double.Parse(str!, styles) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
         public double F64(IFormatProvider provider) => IsNumber ? double.Parse(str!, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
         public double F64(NumberStyles styles, IFormatProvider provider) => IsNumber ? double.Parse(str!, styles, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+
+        public decimal F128() =>
+            IsNum ? decimal.Parse(str!, NumberStyles.Any) :
+            IsHex ? decimal.Parse(str!, NumberStyles.HexNumber) :
+            throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+        public decimal F128(NumberStyles styles) => IsNumber ? decimal.Parse(str!, styles) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+        public decimal F128(IFormatProvider provider) => IsNumber ? decimal.Parse(str!, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+        public decimal F128(NumberStyles styles, IFormatProvider provider) => IsNumber ? decimal.Parse(str!, styles, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
 
         #endregion
 

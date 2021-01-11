@@ -31,14 +31,6 @@ namespace CbStyles.Cbon.Serializer
 
     internal static partial class Codes
     {
-        static Codes()
-        {
-            codes.TryAdd(typeof(bool), new SeDeBool());
-            codes.TryAdd(typeof(string), new SeDeStr());
-            codes.TryAdd(typeof(DateTime), new SeDeDate());
-            codes.TryAdd(typeof(Guid), new SeDeUUID());
-        }
-
         private static string SeStrQuotMin(string str)
         {
             nuint d = 0u, s = 0u;
@@ -70,26 +62,35 @@ namespace CbStyles.Cbon.Serializer
             return s;
         }
 
-        private class SeDeBool : TypedSeDe<bool>
+        static Codes()
         {
-            public override bool DeT(CbVal ast)
-            {
-                return ast.Bool;
-            }
-
-            public override void SeT(bool self, SeStack ctx)
-            {
-                ctx.DoTab();
-                ctx.Append(self ? "true" : "false");
-            }
+            codes.TryAdd(typeof(bool), new SeDeBool());
+            codes.TryAdd(typeof(string), new SeDeStr());
+            codes.TryAdd(typeof(DateTime), new SeDeDate());
+            codes.TryAdd(typeof(Guid), new SeDeUUID());
         }
 
-        private class SeDeStr : TypedSeDe<string>
+        private abstract class TypedSeDeBasic<T> : TypedSeDe<T>
         {
-            public override string DeT(CbVal ast)
+            public override void SeT(T self, SeStack ctx)
             {
-                return ast.Str;
+                ctx.DoTab();
+                ctx.Append(DoSeT(self, ctx));
             }
+
+            protected abstract string DoSeT(T self, SeStack ctx);
+        }
+
+        private class SeDeBool : TypedSeDeBasic<bool>
+        {
+            public override bool DeT(CbVal ast) => ast.Bool;
+
+            protected override string DoSeT(bool self, SeStack ctx) => self ? "true" : "false";
+        }
+
+        private class SeDeStr : TypedSeDeBasic<string>
+        {
+            public override string DeT(CbVal ast) => ast.Str;
 
             public override void SeT(string self, SeStack ctx)
             {
@@ -101,33 +102,136 @@ namespace CbStyles.Cbon.Serializer
                     case SeQuality.Fast: ctx.Append(SeStrQuotDouble(self)); break;
                 }
             }
+
+            protected override string DoSeT(string self, SeStack ctx) => ctx.ctx.Options.Quality switch
+            {
+                SeQuality.Min => SeStrQuotMin(self),
+                SeQuality.Common => SeStrCommon(self),
+                SeQuality.Fast => SeStrQuotDouble(self),
+                _ => throw new NotImplementedException("never"),
+            };
         }
 
-        private class SeDeDate : TypedSeDe<DateTime>
+        private class SeDeDate : TypedSeDeBasic<DateTime>
         {
-            public override DateTime DeT(CbVal ast)
-            {
-                return ast.Date;
-            }
+            public override DateTime DeT(CbVal ast) => ast.Date;
 
-            public override void SeT(DateTime self, SeStack ctx)
-            {
-                ctx.DoTab();
-                ctx.Append(self.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffK"));
-            }
+            protected override string DoSeT(DateTime self, SeStack ctx) => self.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffK");
         }
 
-        private class SeDeUUID : TypedSeDe<Guid>
+        private class SeDeUUID : TypedSeDeBasic<Guid>
         {
-            public override Guid DeT(CbVal ast)
-            {
-                return ast.UUID;
-            }
+            public override Guid DeT(CbVal ast) => ast.UUID;
 
-            public override void SeT(Guid self, SeStack ctx)
+            protected override string DoSeT(Guid self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeU8 : TypedSeDeBasic<byte>
+        {
+            public override byte DeT(CbVal ast) => ast.U8();
+
+            protected override string DoSeT(byte self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeU16 : TypedSeDeBasic<ushort>
+        {
+            public override ushort DeT(CbVal ast) => ast.U16();
+
+            protected override string DoSeT(ushort self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeU32 : TypedSeDeBasic<uint>
+        {
+            public override uint DeT(CbVal ast) => ast.U32();
+
+            protected override string DoSeT(uint self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeU64 : TypedSeDeBasic<ulong>
+        {
+            public override ulong DeT(CbVal ast) => ast.U64();
+
+            protected override string DoSeT(ulong self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeUSize : TypedSeDeBasic<nuint>
+        {
+            public override nuint DeT(CbVal ast) => ast.USize();
+
+            protected override string DoSeT(nuint self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeI8 : TypedSeDeBasic<sbyte>
+        {
+            public override sbyte DeT(CbVal ast) => ast.I8();
+
+            protected override string DoSeT(sbyte self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeI16 : TypedSeDeBasic<short>
+        {
+            public override short DeT(CbVal ast) => ast.I16();
+
+            protected override string DoSeT(short self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeI32 : TypedSeDeBasic<int>
+        {
+            public override int DeT(CbVal ast) => ast.I32();
+
+            protected override string DoSeT(int self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeI64 : TypedSeDeBasic<long>
+        {
+            public override long DeT(CbVal ast) => ast.I64();
+
+            protected override string DoSeT(long self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeISize : TypedSeDeBasic<nint>
+        {
+            public override nint DeT(CbVal ast) => ast.ISize();
+
+            protected override string DoSeT(nint self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeF16 : TypedSeDeBasic<Half>
+        {
+            public override Half DeT(CbVal ast) => ast.F16();
+
+            protected override string DoSeT(Half self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeF32 : TypedSeDeBasic<float>
+        {
+            public override float DeT(CbVal ast) => ast.F32();
+
+            protected override string DoSeT(float self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeF64 : TypedSeDeBasic<double>
+        {
+            public override double DeT(CbVal ast) => ast.F64();
+
+            protected override string DoSeT(double self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeF128 : TypedSeDeBasic<decimal>
+        {
+            public override decimal DeT(CbVal ast) => ast.F128();
+
+            protected override string DoSeT(decimal self, SeStack ctx) => self.ToString();
+        }
+
+        private class SeDeChar : TypedSeDe<char>
+        {
+            public override char DeT(CbVal ast) => ast.Char()!.Value;
+
+            public override void SeT(char self, SeStack ctx)
             {
                 ctx.DoTab();
-                ctx.Append(self.ToString());
+                ctx.Append(self);
             }
         }
     }

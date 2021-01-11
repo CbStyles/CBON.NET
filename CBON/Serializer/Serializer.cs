@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -23,21 +24,34 @@ namespace CbStyles.Cbon.Serializer
         Beautify = WrapObj | WrapArr,
     }
 
-    public record SeOptions
+    public enum SeQuality: byte
     {
-        public uint TabSize = 2;
-        public SeStyle Style = SeStyle.None;
+        Min, Common, Fast
+    }
 
-        internal static SeOptions Default = new SeOptions();
-        internal static SeOptions Beautify = new SeOptions()
+    public record SeOptions(uint TabSize = 2, SeStyle Style = SeStyle.None, SeQuality Quality = SeQuality.Common)
+    {
+        public SeOptions(SeStyle Style): this() => this.Style = Style;
+        public SeOptions(SeQuality Quality) : this() => this.Quality = Quality;
+
+        public readonly static SeOptions Default = new SeOptions();
+        public readonly static SeOptions Beautify = new SeOptions()
         {
             Style = SeStyle.Beautify,
+        };
+        public readonly static SeOptions Min = new SeOptions()
+        {
+            Quality = SeQuality.Min,
+        };
+        public readonly static SeOptions Fast = new SeOptions()
+        {
+            Quality = SeQuality.Fast,
         };
     }
     internal class SeCtx
     {
         public readonly SeOptions Options;
-        public StringBuilder sb = new StringBuilder();
+        public readonly StringBuilder sb = new StringBuilder();
         public SeStack Stack => new SeStack(this);
 
         public SeCtx() : this(SeOptions.Default) { }
@@ -46,7 +60,7 @@ namespace CbStyles.Cbon.Serializer
             Options = options;
         }
     }
-    public struct SeStack
+    internal struct SeStack
     {
         internal readonly SeCtx ctx;
         public readonly nuint tab;
@@ -73,41 +87,93 @@ namespace CbStyles.Cbon.Serializer
             if (!linefirst) return;
             for (nuint i = 0u; i < tab; i++)
             {
-                ctx.sb.Append(' ');
+                Append(' ');
             }
         }
+        public static readonly MethodInfo MI_DoTab = typeof(SeStack).GetMethod(nameof(SeStack.DoTab))!;
+
+        public void DoSplit()
+        {
+            Append(' ');
+        }
+        public static readonly MethodInfo MI_DoSplit = typeof(SeStack).GetMethod(nameof(SeStack.DoSplit))!;
 
         public SeStack DoObjStart()
         {
-            Append("{");
+            Append('{');
             if (Options.Style.HasFlag(SeStyle.WrapObjStart))
             {
-                ctx.sb.Append('\n');
+                Append('\n');
                 var nstack = Options.Style.HasFlag(SeStyle.TabObjItem) ? TabIn : this;
                 nstack.DoTab();
                 return nstack;
             }
             return Body;
         }
+        public static readonly MethodInfo MI_DoObjStart = typeof(SeStack).GetMethod(nameof(SeStack.DoObjStart))!;
+
+        public void DoObjKey(string key)
+        {
+            Append(key);
+            Append(' ');
+        }
+        public static readonly MethodInfo MI_DoObjKey = typeof(SeStack).GetMethod(nameof(SeStack.DoObjKey))!;
 
         public void DoFinishObjItem()
         {
             if (Options.Style.HasFlag(SeStyle.WrapObjItem))
             {
-                ctx.sb.Append('\n');
+                Append('\n');
                 linefirst = true;
                 DoTab();
             }
         }
+        public static readonly MethodInfo MI_DoFinishObjItem = typeof(SeStack).GetMethod(nameof(SeStack.DoFinishObjItem))!;
+
+        public void DoFinishObjItemBody()
+        {
+            if (Options.Style.HasFlag(SeStyle.WrapObjItem))
+            {
+                Append('\n');
+                linefirst = true;
+                DoTab();
+            } 
+            else
+            {
+                Append(' ');
+            }
+        }
+        public static readonly MethodInfo MI_DoFinishObjItemBody = typeof(SeStack).GetMethod(nameof(SeStack.DoFinishObjItemBody))!;
 
         public void DoObjEnd()
         {
             if (Options.Style.HasFlag(SeStyle.WrapObjEnd))
             {
-                ctx.sb.Append('\n');
+                Append('\n');
                 DoTab();
             }
-            Append("}");
+            Append('}');
+        }
+        public static readonly MethodInfo MI_DoObjEnd = typeof(SeStack).GetMethod(nameof(SeStack.DoObjEnd))!;
+
+        public void DoSe<T>(T sede, object obj) where T : ISeDe
+        {
+            if (obj == null) Append("null");
+            else sede.Se(obj, this);
+        }
+        private static readonly MethodInfo MI_DoSe_ = typeof(SeStack).GetMethod(nameof(SeStack.DoSe))!;
+        public static MethodInfo MI_DoSe<T>() => MI_DoSe(typeof(T));
+        public static MethodInfo MI_DoSe(Type T) => MI_DoSe_.MakeGenericMethod(T);
+
+        public void DoSeTS<T, V>(T sede, V obj) where T : ITypedSeDe<V> where V : struct
+        {
+            sede.SeT(obj, this);
+        }
+
+        public void DoSeTC<T, V>(T sede, V obj) where T : ITypedSeDe<V> where V : class
+        {
+            if (obj == null) Append("null");
+            else sede.SeT(obj, this);
         }
 
         public void Append(string s)

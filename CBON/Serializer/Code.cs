@@ -110,20 +110,20 @@ namespace CbStyles.Cbon.Serializer
                 this.sede2 = sede2;
             }
 
-            public static void Use(object obj, SeStack ctx, TestC1 data)
+            public void Use(object obj, SeStack ctx)
             {
                 var self = (TestC2)obj;
                 ctx.DoTab();
                 var body = ctx.DoObjStart();
 
                 body.DoTab();
-                body.Append("a ");
-                data.sede1.Se(self.a, body);
+                body.DoObjKey("a");
+                body.DoSe(sede1, self.a);
                 body.DoFinishObjItem();
 
                 body.DoTab();
-                body.Append("b ");
-                data.sede2.Se(self.b, body);
+                body.DoObjKey("b");
+                body.DoSe(sede2, self.b);
                 body.DoFinishObjItem();
 
                 ctx.DoObjEnd();
@@ -185,7 +185,7 @@ namespace CbStyles.Cbon.Serializer
                             if (cb.Member.HasFlag(CbonMember.OptIn)) if (field.GetCustomAttribute<CbonMemberAttribute>() == null && field.GetCustomAttribute<DataContractAttribute>() == null) continue;
                             var fcb = field.GetCustomAttribute<CbonMemberAttribute>() ?? CbonMemberAttribute.Default;
                             if (fcb.Ignore || field.GetCustomAttribute<NonSerializedAttribute>() != null) continue;
-                            var name = SeStrQuot(fcb.Name ?? field.Name);
+                            var name = SeKey(fcb.Name ?? field.Name);
                             var sede = GetCodeInner(field.FieldType);
                             items.Add(name, (sede, (ILGenerator il) => {
                                 il.Emit(OpCodes.Ldfld, field);
@@ -202,7 +202,7 @@ namespace CbStyles.Cbon.Serializer
                             if (cb.Member.HasFlag(CbonMember.OptIn)) if (prop.GetCustomAttribute<CbonAttribute>() == null && prop.GetCustomAttribute<DataContractAttribute>() == null) continue;
                             var pcb = prop.GetCustomAttribute<CbonMemberAttribute>() ?? CbonMemberAttribute.Default;
                             if (pcb.Ignore || prop.GetCustomAttribute<NonSerializedAttribute>() != null) continue;
-                            var name = SeStrQuot(pcb.Name ?? prop.Name);
+                            var name = SeKey(pcb.Name ?? prop.Name);
                             var sede = GetCodeInner(prop.PropertyType);
                             items.Add(name, (sede, (ILGenerator il) => {
                                 il.Emit(OpCodes.Callvirt, prop.GetMethod!);
@@ -270,69 +270,81 @@ namespace CbStyles.Cbon.Serializer
 
             static Action<object, SeStack> GenSeFunc(string objname, Type t, Type dataT, Dictionary<string, (ISeDe obj, Action<ILGenerator> ldfld)> fs, Dictionary<ISeDe, ulong> objIds, Dictionary<ulong, (FieldInfo f, Type t, string name)> fis, object dataObj)
             {
-                var se = new DynamicMethod($"{Namespace}.CODE.SeDe.{objname}_Se", typeof(void), new Type[] { typeof(object), typeof(SeStack), dataT }, t, true);
-                se.DefineParameter(0, ParameterAttributes.None, "obj");
-                se.DefineParameter(1, ParameterAttributes.None, "ctx");
-                se.DefineParameter(2, ParameterAttributes.None, "data"); // dataT
+                var se = new DynamicMethod($"{Namespace}.CODE.SeDe.{objname}_Se", typeof(void), new Type[] { dataT, typeof(object), typeof(SeStack) }, dataT, true);
+                se.DefineParameter(0, ParameterAttributes.None, "this"); // dataT
+                se.DefineParameter(1, ParameterAttributes.None, "obj");
+                se.DefineParameter(2, ParameterAttributes.None, "ctx");
                 var il = se.GetILGenerator();
 
                 il.DeclareLocal(t);                 // self
                 il.DeclareLocal(typeof(SeStack));   // body
 
                 // XXX self = (XXX)obj
-                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg_1);
                 il.Emit(OpCodes.Castclass, t);
                 il.Emit(OpCodes.Stloc_0);
 
                 // ctx.DoTab();
-                il.Emit(OpCodes.Ldarga_S, (byte)1);
-                il.EmitCall(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.DoTab))!, null);
+                il.Emit(OpCodes.Ldarga_S, (byte)2);
+                il.EmitCall(OpCodes.Call, SeStack.MI_DoTab, null);
 
                 //// body = DoObjStart();
-                il.Emit(OpCodes.Ldarga_S, (byte)1);
-                il.Emit(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.DoObjStart))!);
+                il.Emit(OpCodes.Ldarga_S, (byte)2);
+                il.Emit(OpCodes.Call, SeStack.MI_DoObjStart);
                 il.Emit(OpCodes.Stloc_1);
 
+                int len = fs.Count, i = 0;
                 foreach (var (key, (obj, ldfld)) in fs)
                 {
+                    i++;
+
                     // body.DoTab();
                     il.Emit(OpCodes.Ldloca_S, (byte)1);
-                    il.Emit(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.DoTab))!);
+                    il.Emit(OpCodes.Call, SeStack.MI_DoTab);
 
-                    // body.Append($"{f.key} ");
+                    // body.DoObjKey($"{f.key}");
                     il.Emit(OpCodes.Ldloca_S, (byte)1);
-                    il.Emit(OpCodes.Ldstr, $"{key} ");
-                    il.Emit(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.Append), new Type[] { typeof(string) })!);
+                    il.Emit(OpCodes.Ldstr, key);  
+                    il.Emit(OpCodes.Call, SeStack.MI_DoObjKey);
 
                     var ofi = objIds[obj];
                     var fi = fis[ofi];
 
-                    // data.seden.Se(self.xxx, body);
-                    il.Emit(OpCodes.Ldarg_2);
+                    // body.DoSe(this.seden, self.xxx);
+                    il.Emit(OpCodes.Ldloca_S, (byte)1);
+                    il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, fi.f);
                     il.Emit(OpCodes.Ldloc_0);
                     ldfld(il);
-                    il.Emit(OpCodes.Ldloc_1);
-                    il.Emit(OpCodes.Callvirt, typeof(ISeDe).GetMethod(nameof(ISeDe.Se))!);
+                    il.Emit(OpCodes.Call, SeStack.MI_DoSe<ISeDe>());
 
                     // data.DoFinishObjItem();
                     il.Emit(OpCodes.Ldloca_S, (byte)1);
-                    il.Emit(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.DoFinishObjItem))!);
+                    if (i >= len) il.Emit(OpCodes.Call, SeStack.MI_DoFinishObjItem);
+                    else il.Emit(OpCodes.Call, SeStack.MI_DoFinishObjItemBody);
                 }
 
                 // ctx.DoObjEnd();
-                il.Emit(OpCodes.Ldarga_S, (byte)1);
-                il.Emit(OpCodes.Call, typeof(SeStack).GetMethod(nameof(SeStack.DoObjEnd))!);
+                il.Emit(OpCodes.Ldarga_S, (byte)2);
+                il.Emit(OpCodes.Call, SeStack.MI_DoObjEnd);
 
                 il.Emit(OpCodes.Ret);
 
-                var d = se.CreateDelegate(typeof(Action<,,>).MakeGenericType(typeof(object), typeof(SeStack), dataT));
+                var d = se.CreateDelegate(typeof(Action<,>).MakeGenericType(typeof(object), typeof(SeStack)), dataObj);
                 return (object obj, SeStack ctx) =>
                 {
-                    d.DynamicInvoke(obj, ctx, dataObj);
+                    d.DynamicInvoke(obj, ctx);
                 };
             }
 
+        }
+
+        private static string SeKey(string key)
+        {
+            if (key.Length == 0) return "''";
+            if (key.Length == 0 || Parser.Parser.RegNotWord_ForKey.IsMatch(key))
+                return SeStrQuotMin(key);
+            return key;
         }
 
         private static void GenCodesObjectDe(Type type, TypeBuilder tb, MethodBuilder mb)

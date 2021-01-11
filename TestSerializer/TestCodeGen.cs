@@ -14,6 +14,7 @@ namespace TestSerializer
         class Foo
         {
             public string a = "123";
+            public string b = "asd";
         }
 
         [Test]

@@ -364,7 +364,8 @@ namespace CbStyles.Cbon.Parser
 
         //====================================================================================================
 
-        private static readonly Regex RegNotWord = new Regex(@"(^0[xX]_*[\da-fA-F]+[\da-fA-F_]*$)|(^[+-]?\d+[\d_]*(\.(_*\d+[\d_]*)?)?([eE][-+]?_*\d+[\d_]*)?$)|(^[+-]?\.\d+[\d_]*([eE][-+]?_*\d+[\d_]*)?$)|(^[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}$)|(^.*[\[\]\{\}\(\)'"":=,;\s#]+.*$)", RegexOptions.Compiled);
+        internal static readonly Regex RegNotWord = new Regex(@"(^0[xX]_*[\da-fA-F]+[\da-fA-F_]*$)|(^[+-]?\d+[\d_]*(\.(_*\d+[\d_]*)?)?([eE][-+]?_*\d+[\d_]*)?$)|(^[+-]?\.\d+[\d_]*([eE][-+]?_*\d+[\d_]*)?$)|(^[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}$)|([\[\]\{\}\(\)'"":=,;\s#]+)", RegexOptions.Compiled);
+        internal static readonly Regex RegNotWord_ForKey = new Regex(@"[\[\]\{\}\(\)'"":=,;\s#]+", RegexOptions.Compiled);
 
         //====================================================================================================
 

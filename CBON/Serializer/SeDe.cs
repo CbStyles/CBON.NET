@@ -39,9 +39,35 @@ namespace CbStyles.Cbon.Serializer
             codes.TryAdd(typeof(Guid), new SeDeUUID());
         }
 
+        private static string SeStrQuotMin(string str)
+        {
+            nuint d = 0u, s = 0u;
+            foreach (var c in str)
+            {
+                if (c is '"') d++;
+                if (c is '\'') s++;
+            }
+            if (d < s) return SeStrQuotDouble(str);
+            else return SeStrQuot(str);
+        }
+
+        private static string SeStrQuotDouble(string s)
+        {
+            return $"\"{s.Replace("\"", "\\\"")}\"";
+        }
+
         private static string SeStrQuot(string s)
         {
             return $"'{s.Replace("'", "\\'")}'";
+        }
+
+        private static string SeStrCommon(string s)
+        {
+            if (s.Length == 0) return "''";
+            if (s.Length > 128) return SeStrQuotDouble(s);
+            if (s.Length == 0 || Parser.Parser.RegNotWord.IsMatch(s))
+                return SeStrQuot(s);
+            return s;
         }
 
         private class SeDeBool : TypedSeDe<bool>
@@ -68,7 +94,12 @@ namespace CbStyles.Cbon.Serializer
             public override void SeT(string self, SeStack ctx)
             {
                 ctx.DoTab();
-                ctx.Append(SeStrQuot(self));
+                switch (ctx.ctx.Options.Quality)
+                {
+                    case SeQuality.Min: ctx.Append(SeStrQuotMin(self)); break;
+                    case SeQuality.Common: ctx.Append(SeStrCommon(self)); break;
+                    case SeQuality.Fast: ctx.Append(SeStrQuotDouble(self)); break;
+                }
             }
         }
 

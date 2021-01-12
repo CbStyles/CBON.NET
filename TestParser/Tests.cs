@@ -13,7 +13,7 @@ namespace TestParser
         public void Test1()
         {
             var code = "{a 1 b '2' c null d a e [] f {}}";
-            var r = CBON.Parse(code);
+            var r = Cbon.Parse(code);
             Assert.IsTrue(r[0].IsObj);
         }
 

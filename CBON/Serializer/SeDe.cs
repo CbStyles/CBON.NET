@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -68,6 +69,7 @@ namespace CbStyles.Cbon.Serializer
             codes.TryAdd(typeof(string), new SeDeStr());
             codes.TryAdd(typeof(DateTime), new SeDeDate());
             codes.TryAdd(typeof(Guid), new SeDeUUID());
+            codes.TryAdd(typeof(byte), new SeDeU8());
         }
 
         private abstract class TypedSeDeBasic<T> : TypedSeDe<T>
@@ -91,17 +93,6 @@ namespace CbStyles.Cbon.Serializer
         private class SeDeStr : TypedSeDeBasic<string>
         {
             public override string DeT(CbVal ast) => ast.Str;
-
-            public override void SeT(string self, SeStack ctx)
-            {
-                ctx.DoTab();
-                switch (ctx.ctx.Options.Quality)
-                {
-                    case SeQuality.Min: ctx.Append(SeStrQuotMin(self)); break;
-                    case SeQuality.Common: ctx.Append(SeStrCommon(self)); break;
-                    case SeQuality.Fast: ctx.Append(SeStrQuotDouble(self)); break;
-                }
-            }
 
             protected override string DoSeT(string self, SeStack ctx) => ctx.ctx.Options.Quality switch
             {
@@ -224,15 +215,25 @@ namespace CbStyles.Cbon.Serializer
             protected override string DoSeT(decimal self, SeStack ctx) => self.ToString();
         }
 
-        private class SeDeChar : TypedSeDe<char>
+        private class SeDeChar : TypedSeDeBasic<char>
         {
             public override char DeT(CbVal ast) => ast.Char()!.Value;
 
-            public override void SeT(char self, SeStack ctx)
+            protected override string DoSeT(char self, SeStack ctx) => ctx.ctx.Options.Quality switch
             {
-                ctx.DoTab();
-                ctx.Append(self);
-            }
+                SeQuality.Min => SeStrQuotMin(self.ToString()),
+                SeQuality.Common => SeStrCommon(self.ToString()),
+                SeQuality.Fast => SeStrQuotDouble(self.ToString()),
+                _ => throw new NotImplementedException("never"),
+            };
         }
+
+        private class SeDeBigInt : TypedSeDeBasic<BigInteger>
+        {
+            public override BigInteger DeT(CbVal ast) => ast.BigInt();
+
+            protected override string DoSeT(BigInteger self, SeStack ctx) => self.ToString();
+        }
+
     }
 }

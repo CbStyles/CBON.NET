@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 
 namespace CbStyles.Cbon
 {
-    public static class CBON
+    public class Cbon
     {
         public static List<CbVal> Parse(string source) => Parser.Parser.Parse(source);
         public static List<CbVal> Parse(string source, CBONParserOptions options) => Parser.Parser.Parse(source, options);

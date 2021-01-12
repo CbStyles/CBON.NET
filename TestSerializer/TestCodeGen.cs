@@ -20,11 +20,7 @@ namespace TestSerializer
         [Test]
         public void Test1()
         {
-            var s = (Codes.SeDeObj)Codes.GetCode(typeof(Foo));
-            SaveAssembly(Codes.module.Assembly);
-            var ctx = new SeCtx();
-            s.se(new Foo(), ctx.Stack);
-            var str = ctx.sb.ToString();
+            var str = Serializer.Se(new Foo());
         }
 
 

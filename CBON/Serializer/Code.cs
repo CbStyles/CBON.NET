@@ -26,7 +26,7 @@ namespace CbStyles.Cbon.Serializer
     {
         internal static ConcurrentDictionary<Type, ISeDe> codes = new ConcurrentDictionary<Type, ISeDe>();
 
-        internal static string Namespace = $"{nameof(CbStyles)}.{nameof(Cbon)}.{nameof(Cbon.Serializer)}";
+        internal static string Namespace = $"{nameof(CbStyles)}.{nameof(CbStyles.Cbon)}.{nameof(CbStyles.Cbon.Serializer)}";
 
         public static ISeDe GetCode(Type type)
         {
@@ -347,6 +347,29 @@ namespace CbStyles.Cbon.Serializer
             return key;
         }
 
+        private class SeIter<T, V> where T : IEnumerable<V>
+        {
+            private readonly ISeDe sede;
+
+            public SeIter(ISeDe sede) => this.sede = sede;
+
+            public void SeT(T self, SeStack ctx)
+            {
+                ctx.DoTab();
+                var body = ctx.DoArrStart();
+                bool first = true;
+                foreach (var item in self)
+                {
+                    if (first) first = false;
+                    else body.DoFinishArrItemBody();
+                    if (item == null) body.Append("null");
+                    else body.DoSe(sede, item);
+                }
+                if (!first) body.DoFinishArrItem();
+                ctx.DoArrEnd();
+            }
+        }
+
         private static void GenCodesObjectDe(Type type, TypeBuilder tb, MethodBuilder mb)
         {
             var cb = type.GetCustomAttribute<CbonAttribute>() ?? CbonAttribute.Default;
@@ -354,6 +377,8 @@ namespace CbStyles.Cbon.Serializer
 
             il.Emit(OpCodes.Ret);
         }
+
+        
 
     }
 }

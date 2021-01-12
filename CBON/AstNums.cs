@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Numerics;
 
 namespace CbStyles.Cbon
 {
@@ -307,6 +308,14 @@ namespace CbStyles.Cbon
         public decimal F128(NumberStyles styles) => IsNumber ? decimal.Parse(str!, styles) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
         public decimal F128(IFormatProvider provider) => IsNumber ? decimal.Parse(str!, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
         public decimal F128(NumberStyles styles, IFormatProvider provider) => IsNumber ? decimal.Parse(str!, styles, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+
+        public BigInteger BigInt() =>
+            IsNum ? BigInteger.Parse(str!, NumberStyles.Any) :
+            IsHex ? BigInteger.Parse(str!, NumberStyles.HexNumber) :
+            throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+        public BigInteger BigInt(NumberStyles styles) => IsNumber ? BigInteger.Parse(str!, styles) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+        public BigInteger BigInt(IFormatProvider provider) => IsNumber ? BigInteger.Parse(str!, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
+        public BigInteger BigInt(NumberStyles styles, IFormatProvider provider) => IsNumber ? BigInteger.Parse(str!, styles, provider) : throw KindErr($"{nameof(CbType.Num)} or {nameof(CbType.Hex)}");
 
         #endregion
 

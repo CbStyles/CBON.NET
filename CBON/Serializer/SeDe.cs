@@ -69,7 +69,9 @@ namespace CbStyles.Cbon.Serializer
             codes.TryAdd(typeof(string), new SeDeStr());
             codes.TryAdd(typeof(DateTime), new SeDeDate());
             codes.TryAdd(typeof(Guid), new SeDeUUID());
+            codes.TryAdd(typeof(char), new SeDeChar());
             codes.TryAdd(typeof(byte), new SeDeU8());
+            codes.TryAdd(typeof(ushort), new SeDeU16());
         }
 
         private abstract class TypedSeDeBasic<T> : TypedSeDe<T>
@@ -235,5 +237,35 @@ namespace CbStyles.Cbon.Serializer
             protected override string DoSeT(BigInteger self, SeStack ctx) => self.ToString();
         }
 
+        private static string SeKey(string key)
+        {
+            if (key.Length == 0) return "''";
+            if (key.Length == 0 || Parser.Parser.RegNotWord_ForKey.IsMatch(key))
+                return SeStrQuotMin(key);
+            return key;
+        }
+
+        private class SeIter<T, V> where T : IEnumerable<V>
+        {
+            private readonly ISeDe sede;
+
+            public SeIter(ISeDe sede) => this.sede = sede;
+
+            public void SeT(T self, SeStack ctx)
+            {
+                ctx.DoTab();
+                var body = ctx.DoArrStart();
+                bool first = true;
+                foreach (var item in self)
+                {
+                    if (first) first = false;
+                    else body.DoFinishArrItemBody();
+                    if (item == null) body.Append("null");
+                    else body.DoSe(sede, item);
+                }
+                if (!first) body.DoFinishArrItem();
+                ctx.DoArrEnd();
+            }
+        }
     }
 }
